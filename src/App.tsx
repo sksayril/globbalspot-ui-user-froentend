@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Home, Building2, Users, User, ArrowLeft, X, Copy, Share2, TrendingUp, Calendar, Target, Gift, DollarSign, Activity } from 'lucide-react';
 import HomePage from './components/HomePage';
 import MyInvestmentsPage from './components/MyInvestmentsPage';
@@ -8,6 +9,8 @@ import ProfilePage from './components/ProfilePage';
 import ActivityPage from './components/ActivityPage';
 import PurchaseModal from './components/PurchaseModal';
 import AuthPage from './components/AuthPage';
+import LoginPage from './components/LoginPage';
+import SignupPage from './components/SignupPage';
 
 export interface Hotel {
   id: string;
@@ -52,7 +55,8 @@ function App() {
     teamIncome: 32.00,
     teamMembers: 1,
     uid: "112619",
-    inviteCode: "112619"
+    inviteCode: "112619",
+    name: "John Anderson"
   });
 
   const hotels: Hotel[] = [
@@ -223,10 +227,17 @@ function App() {
     }
   };
 
-  // Show auth page if not authenticated
-  if (!isAuthenticated) {
-    return <AuthPage onAuthSuccess={handleAuthSuccess} />;
-  }
+  const handleLogin = (credentials: any) => {
+    console.log('Login attempt:', credentials);
+    // Here you would typically validate credentials with your backend
+    handleAuthSuccess();
+  };
+
+  const handleSignup = (userData: any) => {
+    console.log('Signup attempt:', userData);
+    // Here you would typically create account with your backend
+    handleAuthSuccess();
+  };
 
   const renderPage = () => {
     switch (currentPage) {
@@ -253,7 +264,8 @@ function App() {
     }
   };
 
-  return (
+  // Main authenticated app component
+  const AuthenticatedApp = () => (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Main Content */}
       <div className="flex-1 pb-20 overflow-y-auto">
@@ -324,6 +336,55 @@ function App() {
         />
       )}
     </div>
+  );
+
+  return (
+    <Router>
+      <Routes>
+        {/* Public routes */}
+        <Route path="/login" element={
+          !isAuthenticated ? (
+            <LoginPage
+              onLogin={handleLogin}
+              onSwitchToSignup={() => window.location.href = '/signup'}
+              onBack={() => window.location.href = '/'}
+            />
+          ) : (
+            <Navigate to="/" replace />
+          )
+        } />
+        
+        <Route path="/signup" element={
+          !isAuthenticated ? (
+            <SignupPage
+              onSignup={handleSignup}
+              onSwitchToLogin={() => window.location.href = '/login'}
+              onBack={() => window.location.href = '/'}
+            />
+          ) : (
+            <Navigate to="/" replace />
+          )
+        } />
+        
+        {/* Protected routes */}
+        <Route path="/" element={
+          isAuthenticated ? (
+            <AuthenticatedApp />
+          ) : (
+            <Navigate to="/login" replace />
+          )
+        } />
+        
+        {/* Catch all route */}
+        <Route path="*" element={
+          isAuthenticated ? (
+            <AuthenticatedApp />
+          ) : (
+            <Navigate to="/login" replace />
+          )
+        } />
+      </Routes>
+    </Router>
   );
 }
 

@@ -44,7 +44,7 @@ const HotelDetail: React.FC<HotelDetailProps> = ({ hotel, onBack, onPurchase }) 
         <div className="grid grid-cols-3 gap-4 mb-6">
           <div className="text-center">
             <div className="text-sm text-gray-600 mb-1">Product price</div>
-            <div className="text-lg font-bold text-gray-800">₹{hotel.price}</div>
+            <div className="text-lg font-bold text-gray-800">${hotel.price}</div>
           </div>
           <div className="text-center">
             <div className="text-sm text-gray-600 mb-1">Daily rate</div>
@@ -52,7 +52,7 @@ const HotelDetail: React.FC<HotelDetailProps> = ({ hotel, onBack, onPurchase }) 
           </div>
           <div className="text-center">
             <div className="text-sm text-gray-600 mb-1">Daily income</div>
-            <div className="text-lg font-bold text-gray-800">₹{hotel.dailyIncome}</div>
+            <div className="text-lg font-bold text-gray-800">${hotel.dailyIncome}</div>
           </div>
         </div>
 
@@ -63,11 +63,11 @@ const HotelDetail: React.FC<HotelDetailProps> = ({ hotel, onBack, onPurchase }) 
           </div>
           <div className="text-center">
             <div className="text-sm text-gray-600 mb-1">Total Profit</div>
-            <div className="text-lg font-bold text-gray-800">₹{hotel.totalProfit}</div>
+            <div className="text-lg font-bold text-gray-800">${hotel.totalProfit}</div>
           </div>
           <div className="text-center">
             <div className="text-sm text-gray-600 mb-1">Principal+income</div>
-            <div className="text-lg font-bold text-gray-800">₹{hotel.principalIncome}</div>
+            <div className="text-lg font-bold text-gray-800">${hotel.principalIncome}</div>
           </div>
         </div>
 
@@ -90,7 +90,7 @@ const HotelDetail: React.FC<HotelDetailProps> = ({ hotel, onBack, onPurchase }) 
             <strong>Features:</strong> {hotel.description}
           </p>
           <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-            <div className="text-lg font-bold text-blue-600">₹{hotel.price}</div>
+            <div className="text-lg font-bold text-blue-600">${hotel.price}</div>
           </div>
         </div>
 
