@@ -1,20 +1,21 @@
 import React, { useState } from 'react';
-import { Copy, Share2, ChevronRight, Users, DollarSign, TrendingUp, X, Star, Crown, Shield, Award } from 'lucide-react';
+import { Copy, Share2, ChevronRight, Users, DollarSign, TrendingUp, X, Star, Crown, Shield, Award, Check } from 'lucide-react';
+import { CardSkeleton, GridSkeleton } from './SkeletonLoader';
 
 interface UserStats {
-  dailyIncome: number;
-  totalIncome: number;
-  checkInLevel: number;
-  totalInvestment: number;
-  activeInvestments: number;
-  teamIncome: number;
-  teamMembers: number;
-  uid: string;
-  inviteCode: string;
+  dailyIncome?: {
+    totalEarned: number;
+    todayEarned: number;
+  };
+  referralLevel?: number;
+  teamIncome?: number;
+  teamMembers?: number;
+  inviteCode?: string;
 }
 
 interface TeamsPageProps {
   userStats: UserStats;
+  referralCode?: string;
 }
 
 interface TeamMember {
@@ -24,7 +25,21 @@ interface TeamMember {
   assets: number;
 }
 
-const TeamsPage: React.FC<TeamsPageProps> = ({ userStats }) => {
+const TeamsPage: React.FC<TeamsPageProps> = ({ userStats, referralCode }) => {
+  // Show skeleton loader if data is loading
+  if (!userStats) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+        <div className="px-4 sm:px-6 py-8">
+          <div className="mb-8">
+            <CardSkeleton />
+          </div>
+          <GridSkeleton cols={2} rows={2} />
+        </div>
+      </div>
+    );
+  }
+
   const [copiedUID, setCopiedUID] = useState(false);
   const [copiedInvite, setCopiedInvite] = useState(false);
   const [selectedTeamLevel, setSelectedTeamLevel] = useState<string | null>(null);
@@ -96,62 +111,169 @@ const TeamsPage: React.FC<TeamsPageProps> = ({ userStats }) => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       {/* Premium Header */}
-      <div className="relative bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700 px-6 py-8 text-white overflow-hidden">
-        {/* Background Effects */}
-        <div className="absolute inset-0 bg-black/10"></div>
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl transform translate-x-16 -translate-y-16"></div>
-        <div className="absolute bottom-0 left-0 w-48 h-48 bg-purple-300/20 rounded-full blur-2xl"></div>
-        
-        <div className="relative z-10">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center space-x-4">
-              <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center border border-white/30 shadow-lg">
-                <Users className="w-7 h-7 text-white" />
+      <div className="bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700 px-4 sm:px-6 py-8 sm:py-12 text-white">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4 mb-6">
+            <div className="w-12 h-12 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-xl flex items-center justify-center shadow-lg">
+              <Users className="w-6 h-6 text-white" />
+            </div>
+            <div className="text-center sm:text-left">
+              <h1 className="text-2xl sm:text-3xl font-bold mb-2">Team Management</h1>
+              <p className="text-indigo-100 opacity-90">Build your network and earn together</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Premium Content */}
+      <div className="px-4 sm:px-6 py-6 sm:py-8">
+        <div className="max-w-4xl mx-auto">
+          {/* Referral Code Section */}
+          <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-6 sm:p-8 shadow-xl border border-white/50 mb-8">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4 mb-6">
+              <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg">
+                <Copy className="w-6 h-6 text-white" />
               </div>
-              <div>
-                <div className="text-sm text-white/80 font-medium">UID: {userStats.uid}</div>
-                <div className="text-sm text-white/80 font-medium">Invite Code: {userStats.inviteCode}</div>
+              <div className="text-center sm:text-left">
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2">Your Referral Code</h2>
+                <p className="text-gray-600">Share this code with friends to earn rewards</p>
               </div>
             </div>
-            <div className="flex space-x-3">
-              <button
-                onClick={() => copyToClipboard(userStats.uid, 'uid')}
-                className="p-3 bg-white/10 backdrop-blur-sm hover:bg-white/20 rounded-xl transition-all duration-200 border border-white/20 shadow-lg hover:scale-105"
-              >
-                <Copy className="w-5 h-5 text-white" />
-              </button>
-              <button
-                onClick={() => copyToClipboard(userStats.inviteCode, 'invite')}
-                className="p-3 bg-white/10 backdrop-blur-sm hover:bg-white/20 rounded-xl transition-all duration-200 border border-white/20 shadow-lg hover:scale-105"
-              >
-                <Copy className="w-5 h-5 text-white" />
-              </button>
-              <button className="bg-gradient-to-r from-yellow-500 to-orange-600 text-white px-6 py-3 rounded-xl font-semibold hover:from-yellow-600 hover:to-orange-700 transition-all duration-200 shadow-lg hover:scale-105">
-                Invite Friends
-              </button>
+            
+            <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 rounded-xl p-4 sm:p-6 border border-emerald-200">
+              <div className="flex flex-col sm:flex-row items-center justify-between space-y-3 sm:space-y-0">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-emerald-500 rounded-lg flex items-center justify-center">
+                    <Star className="w-5 h-5 text-white" />
+                  </div>
+                  <div className="text-center sm:text-left">
+                    <div className="font-semibold text-emerald-800 text-lg">{referralCode || 'N/A'}</div>
+                    <div className="text-sm text-emerald-600">Your unique referral code</div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => copyToClipboard(referralCode || userStats.inviteCode || '', 'invite')}
+                  className="flex items-center space-x-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl text-sm font-medium"
+                >
+                  {copiedInvite ? (
+                    <>
+                      <Check className="w-4 h-4" />
+                      <span>Copied!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4" />
+                      <span>Copy Code</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
 
-          {/* Premium Team Stats */}
-          <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-6 border border-white/20 shadow-2xl">
-            <div className="grid grid-cols-2 gap-6">
-              <div className="text-center">
-                <div className="text-3xl font-bold mb-1">0</div>
-                <div className="text-sm text-white/80">Team income today</div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold mb-1">{userStats.teamIncome}</div>
-                <div className="text-sm text-white/80">Total team income</div>
+          {/* Team Stats Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
+            <div className="group bg-white/80 backdrop-blur-xl rounded-2xl p-6 shadow-xl border border-white/50 hover:shadow-2xl hover:bg-white/90 transition-all duration-300 hover:-translate-y-1">
+              <div className="flex flex-col items-center text-center space-y-2 sm:space-y-3">
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-lg">
+                  <Users className="w-6 h-6 text-white" />
+                </div>
+                <div className="text-2xl sm:text-3xl font-bold text-blue-600 mb-1">{userStats?.teamMembers || 0}</div>
+                <div className="text-xs sm:text-sm text-gray-600 font-medium">Team Members</div>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-6 mt-6">
-              <div className="text-center">
-                <div className="text-3xl font-bold mb-1">0</div>
-                <div className="text-sm text-white/80">Team increased today</div>
+            <div className="group bg-white/80 backdrop-blur-xl rounded-2xl p-6 shadow-xl border border-white/50 hover:shadow-2xl hover:bg-white/90 transition-all duration-300 hover:-translate-y-1">
+              <div className="flex flex-col items-center text-center space-y-2 sm:space-y-3">
+                <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-lg">
+                  <TrendingUp className="w-6 h-6 text-white" />
+                </div>
+                <div className="text-2xl sm:text-3xl font-bold text-emerald-600 mb-1">${userStats?.teamIncome || 0}</div>
+                <div className="text-xs sm:text-sm text-gray-600 font-medium">Team Income</div>
               </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold mb-1">-</div>
-                <div className="text-sm text-white/80">Team Total asset</div>
+            </div>
+            <div className="group bg-white/80 backdrop-blur-xl rounded-2xl p-6 shadow-xl border border-white/50 hover:shadow-2xl hover:bg-white/90 transition-all duration-300 hover:-translate-y-1">
+              <div className="flex flex-col items-center text-center space-y-2 sm:space-y-3">
+                <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-lg">
+                  <Award className="w-6 h-6 text-white" />
+                </div>
+                <div className="text-2xl sm:text-3xl font-bold text-purple-600 mb-1">Level {userStats?.referralLevel || 0}</div>
+                <div className="text-xs sm:text-sm text-gray-600 font-medium">VIP Level</div>
+              </div>
+            </div>
+            <div className="group bg-white/80 backdrop-blur-xl rounded-2xl p-6 shadow-xl border border-white/50 hover:shadow-2xl hover:bg-white/90 transition-all duration-300 hover:-translate-y-1">
+              <div className="flex flex-col items-center text-center space-y-2 sm:space-y-3">
+                <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-lg">
+                  <Crown className="w-6 h-6 text-white" />
+                </div>
+                <div className="text-2xl sm:text-3xl font-bold text-orange-600 mb-1">${userStats?.dailyIncome?.totalEarned || 0}</div>
+                <div className="text-xs sm:text-sm text-gray-600 font-medium">Total Income</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Team Benefits Section */}
+          <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-6 sm:p-8 shadow-xl border border-white/50">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4 mb-6">
+              <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                <Shield className="w-6 h-6 text-white" />
+              </div>
+              <div className="text-center sm:text-left">
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2">Team Benefits</h2>
+                <p className="text-gray-600">Unlock rewards by building your team</p>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+              <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl p-6 border border-blue-200">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4 mb-4">
+                  <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
+                    <Users className="w-5 h-5 text-white" />
+                  </div>
+                  <div className="text-center sm:text-left">
+                    <h3 className="font-semibold text-blue-800 text-lg">Direct Referrals</h3>
+                    <p className="text-blue-600 text-sm">Earn from direct team members</p>
+                  </div>
+                </div>
+                <ul className="space-y-2 text-xs sm:text-sm text-blue-700">
+                  <li className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                    <span>5% commission on deposits</span>
+                  </li>
+                  <li className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                    <span>Daily income sharing</span>
+                  </li>
+                  <li className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                    <span>Level-based bonuses</span>
+                  </li>
+                </ul>
+              </div>
+              
+              <div className="bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl p-6 border border-purple-200">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4 mb-4">
+                  <div className="w-10 h-10 bg-purple-500 rounded-lg flex items-center justify-center">
+                    <Award className="w-5 h-5 text-white" />
+                  </div>
+                  <div className="text-center sm:text-left">
+                    <h3 className="font-semibold text-purple-800 text-lg">Team Rewards</h3>
+                    <p className="text-purple-600 text-sm">Unlock exclusive benefits</p>
+                  </div>
+                </div>
+                <ul className="space-y-2 text-xs sm:text-sm text-purple-700">
+                  <li className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                    <span>Higher daily income rates</span>
+                  </li>
+                  <li className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                    <span>VIP status upgrades</span>
+                  </li>
+                  <li className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                    <span>Exclusive investment opportunities</span>
+                  </li>
+                </ul>
               </div>
             </div>
           </div>

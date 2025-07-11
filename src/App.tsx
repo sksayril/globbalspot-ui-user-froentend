@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { Home, Building2, Users, User, ArrowLeft, X, Copy, Share2, TrendingUp, Calendar, Target, Gift, DollarSign, Activity } from 'lucide-react';
+import { CardSkeleton, GridSkeleton } from './components/SkeletonLoader';
 import HomePage from './components/HomePage';
 import MyInvestmentsPage from './components/MyInvestmentsPage';
 import HotelDetail from './components/HotelDetail';
@@ -8,9 +9,9 @@ import TeamsPage from './components/TeamsPage';
 import ProfilePage from './components/ProfilePage';
 import ActivityPage from './components/ActivityPage';
 import PurchaseModal from './components/PurchaseModal';
-import AuthPage from './components/AuthPage';
 import LoginPage from './components/LoginPage';
 import SignupPage from './components/SignupPage';
+import { getUserProfile, getAuthToken, getWallets, getUserReferrals } from './services/api';
 
 export interface Hotel {
   id: string;
@@ -46,18 +47,25 @@ function App() {
   const [currentPage, setCurrentPage] = useState('home');
   const [selectedHotel, setSelectedHotel] = useState<Hotel | null>(null);
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
-  const [userStats, setUserStats] = useState({
-    dailyIncome: 290,
-    totalIncome: 15420,
-    checkInLevel: 7,
-    totalInvestment: 125000,
-    activeInvestments: 12,
-    teamIncome: 32.00,
-    teamMembers: 1,
-    uid: "112619",
-    inviteCode: "112619",
-    name: "John Anderson"
+  const [profile, setProfile] = useState<any>(null);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(false);
+  const [wallets, setWallets] = useState({
+    investmentWallet: { balance: 0 },
+    normalWallet: { balance: 0 }
   });
+  const [isLoadingWallets, setIsLoadingWallets] = useState(false);
+  const [referrals, setReferrals] = useState<any[]>([]);
+  const [referralCode, setReferralCode] = useState<string>('');
+  const [isLoadingReferrals, setIsLoadingReferrals] = useState(false);
+
+  // Check for existing authentication on component mount
+  useEffect(() => {
+    const token = getAuthToken();
+    if (token) {
+      setIsAuthenticated(true);
+      handleAuthSuccess();
+    }
+  }, []);
 
   const hotels: Hotel[] = [
     {
@@ -195,8 +203,49 @@ function App() {
     }
   ];
 
-  const handleAuthSuccess = () => {
+  const fetchWallets = async () => {
+    setIsLoadingWallets(true);
+    try {
+      const walletsResponse = await getWallets();
+      setWallets(walletsResponse.data);
+    } catch (error) {
+      // Optionally handle error
+    } finally {
+      setIsLoadingWallets(false);
+    }
+  };
+
+  const fetchReferrals = async () => {
+    setIsLoadingReferrals(true);
+    try {
+      const referralsResponse = await getUserReferrals();
+      setReferralCode(referralsResponse.data.referralCode);
+    } catch (error) {
+      setReferralCode('');
+    } finally {
+      setIsLoadingReferrals(false);
+    }
+  };
+
+  const handleAuthSuccess = async () => {
     setIsAuthenticated(true);
+    await fetchUserProfile();
+    await fetchWallets();
+    await fetchReferrals();
+  };
+
+  const fetchUserProfile = async () => {
+    const token = getAuthToken();
+    if (!token) return;
+    setIsLoadingProfile(true);
+    try {
+      const profileResponse = await getUserProfile();
+      setProfile(profileResponse.data);
+    } catch (error) {
+      setProfile(null);
+    } finally {
+      setIsLoadingProfile(false);
+    }
   };
 
   const handleLogout = () => {
@@ -216,7 +265,7 @@ function App() {
 
   const handleConfirmPurchase = () => {
     if (selectedHotel) {
-      setUserStats(prev => ({
+      setProfile((prev: any) => ({
         ...prev,
         totalInvestment: prev.totalInvestment + selectedHotel.price,
         activeInvestments: prev.activeInvestments + 1,
@@ -227,24 +276,26 @@ function App() {
     }
   };
 
-  const handleLogin = (credentials: any) => {
+  const handleLogin = async (credentials: any) => {
     console.log('Login attempt:', credentials);
-    // Here you would typically validate credentials with your backend
-    handleAuthSuccess();
+    // The login API call is handled in LoginPage component
+    // This function is called after successful login
+    await handleAuthSuccess();
   };
 
-  const handleSignup = (userData: any) => {
+  const handleSignup = async (userData: any) => {
     console.log('Signup attempt:', userData);
-    // Here you would typically create account with your backend
-    handleAuthSuccess();
+    // The signup API call is handled in SignupPage component
+    // This function is called after successful signup
+    await handleAuthSuccess();
   };
 
   const renderPage = () => {
     switch (currentPage) {
       case 'home':
-        return <HomePage userStats={userStats} />;
+        return <HomePage userStats={profile} isLoading={isLoadingProfile || isLoadingWallets} investmentWalletBalance={wallets.investmentWallet.balance} normalWalletBalance={wallets.normalWallet.balance} />;
       case 'my-investments':
-        return <MyInvestmentsPage investments={userInvestments} onInvestmentSelect={handleHotelSelect} />;
+        return <MyInvestmentsPage investments={userInvestments} onInvestmentSelect={handleHotelSelect} onWalletsUpdate={setWallets} />;
       case 'hotel-detail':
         return selectedHotel ? (
           <HotelDetail 
@@ -254,15 +305,45 @@ function App() {
           />
         ) : null;
       case 'teams':
-        return <TeamsPage userStats={userStats} />;
+        return <TeamsPage userStats={profile} referralCode={referralCode} />;
       case 'activity':
-        return <ActivityPage userStats={userStats} />;
+        return <ActivityPage userStats={profile} />;
       case 'profile':
-        return <ProfilePage userStats={userStats} onLogout={handleLogout} />;
+        return <ProfilePage profile={profile} onLogout={handleLogout} />;
       default:
-        return <HomePage userStats={userStats} />;
+        return <HomePage userStats={profile} isLoading={isLoadingProfile || isLoadingWallets} investmentWalletBalance={wallets.investmentWallet.balance} normalWalletBalance={wallets.normalWallet.balance} />;
     }
   };
+
+  // Show loading state while fetching initial data
+  if (isLoadingProfile || isLoadingWallets) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+        {/* Header skeleton */}
+        <div className="relative">
+          <div className="h-72 bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700 relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-t from-indigo-900/60 via-purple-800/40 to-transparent"></div>
+            <div className="absolute bottom-4 left-4 right-4">
+              <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-4 border border-white/20">
+                <div className="flex items-center space-x-3">
+                  <div className="w-12 h-12 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-xl animate-pulse"></div>
+                  <div className="space-y-2">
+                    <div className="h-4 w-32 bg-white/20 rounded animate-pulse"></div>
+                    <div className="h-3 w-24 bg-white/20 rounded animate-pulse"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Content skeleton */}
+        <div className="px-4 sm:px-6 -mt-16 relative z-10 pb-8">
+          <GridSkeleton cols={2} rows={2} />
+        </div>
+      </div>
+    );
+  }
 
   // Main authenticated app component
   const AuthenticatedApp = () => (
@@ -338,17 +419,38 @@ function App() {
     </div>
   );
 
+  // Wrapper components to use navigation hooks
+  const LoginPageWrapper = () => {
+    const navigate = useNavigate();
+    
+    return (
+      <LoginPage
+        onLogin={handleLogin}
+        onSwitchToSignup={() => navigate('/signup')}
+        onBack={() => navigate('/')}
+      />
+    );
+  };
+
+  const SignupPageWrapper = () => {
+    const navigate = useNavigate();
+    
+    return (
+      <SignupPage
+        onSignup={handleSignup}
+        onSwitchToLogin={() => navigate('/login')}
+        onBack={() => navigate('/')}
+      />
+    );
+  };
+
   return (
     <Router>
       <Routes>
         {/* Public routes */}
         <Route path="/login" element={
           !isAuthenticated ? (
-            <LoginPage
-              onLogin={handleLogin}
-              onSwitchToSignup={() => window.location.href = '/signup'}
-              onBack={() => window.location.href = '/'}
-            />
+            <LoginPageWrapper />
           ) : (
             <Navigate to="/" replace />
           )
@@ -356,11 +458,7 @@ function App() {
         
         <Route path="/signup" element={
           !isAuthenticated ? (
-            <SignupPage
-              onSignup={handleSignup}
-              onSwitchToLogin={() => window.location.href = '/login'}
-              onBack={() => window.location.href = '/'}
-            />
+            <SignupPageWrapper />
           ) : (
             <Navigate to="/" replace />
           )

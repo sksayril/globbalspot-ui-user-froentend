@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, Lock, Mail, ArrowLeft } from 'lucide-react';
+import { loginUser, storeAuthData, LoginRequest } from '../services/api';
 
 interface LoginPageProps {
   onLogin: (credentials: any) => void;
@@ -23,10 +24,11 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSwitchToSignup, onBack
       [name]: value
     }));
     // Clear error when user starts typing
-    if (errors[name]) {
-      setErrors(prev => ({
+    if (errors[name] || errors.general) {
+      setErrors((prev: any) => ({
         ...prev,
-        [name]: ''
+        [name]: '',
+        general: ''
       }));
     }
   };
@@ -57,17 +59,36 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSwitchToSignup, onBack
 
     setIsLoading(true);
     
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      // Prepare API request body
+      const requestBody: LoginRequest = {
+        email: formData.email,
+        password: formData.password
+      };
+
+      // Make API call using the service
+      const response = await loginUser(requestBody);
+
+      // Store authentication data
+      storeAuthData(response.data.token, response.data.user);
+
       setIsLoading(false);
-      onLogin(formData);
-    }, 1500);
+      
+      // Call the success callback to navigate to home
+      onLogin(response.data);
+    } catch (error) {
+      console.error('Login error:', error);
+      setIsLoading(false);
+      setErrors({
+        general: error instanceof Error ? error.message : 'An unexpected error occurred. Please try again.'
+      });
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-teal-50">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-blue-50 to-cyan-50">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-teal-600 px-4 py-6 text-white">
+      <div className="bg-gradient-to-r from-indigo-600 via-blue-600 to-cyan-600 px-4 py-6 text-white">
         <div className="flex items-center space-x-4">
           <button
             onClick={onBack}
@@ -75,7 +96,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSwitchToSignup, onBack
           >
             <ArrowLeft className="w-6 h-6" />
           </button>
-          <h1 className="text-xl font-semibold">Login</h1>
+          <h1 className="text-xl font-semibold">Welcome Back</h1>
         </div>
       </div>
 
@@ -83,12 +104,19 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSwitchToSignup, onBack
       <div className="px-4 py-8">
         <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
           <div className="text-center mb-8">
-            <div className="w-20 h-20 bg-gradient-to-r from-blue-600 to-teal-600 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="w-20 h-20 bg-gradient-to-r from-indigo-600 via-blue-600 to-cyan-600 rounded-full flex items-center justify-center mx-auto mb-4">
               <Lock className="w-10 h-10 text-white" />
             </div>
             <h2 className="text-2xl font-bold text-gray-800 mb-2">Welcome Back</h2>
-            <p className="text-gray-600">Sign in to your account to continue</p>
+            <p className="text-gray-600">Sign in to access your premium investment portfolio</p>
           </div>
+
+          {/* General Error Display */}
+          {errors.general && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-red-600 text-sm font-medium">{errors.general}</p>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Email */}
@@ -105,7 +133,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSwitchToSignup, onBack
                   name="email"
                   value={formData.email}
                   onChange={handleInputChange}
-                  className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
+                  className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors ${
                     errors.email ? 'border-red-500' : 'border-gray-300'
                   }`}
                   placeholder="Enter your email"
@@ -130,7 +158,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSwitchToSignup, onBack
                   name="password"
                   value={formData.password}
                   onChange={handleInputChange}
-                  className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
+                  className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors ${
                     errors.password ? 'border-red-500' : 'border-gray-300'
                   }`}
                   placeholder="Enter your password"
@@ -156,7 +184,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSwitchToSignup, onBack
             <div className="text-right">
               <button
                 type="button"
-                className="text-sm text-blue-600 hover:text-blue-700 transition-colors"
+                className="text-sm text-indigo-600 hover:text-indigo-700 transition-colors"
               >
                 Forgot Password?
               </button>
@@ -166,7 +194,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSwitchToSignup, onBack
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-gradient-to-r from-blue-600 to-teal-600 text-white py-3 rounded-lg font-semibold text-lg hover:from-blue-700 hover:to-teal-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-gradient-to-r from-indigo-600 via-blue-600 to-cyan-600 text-white py-3 rounded-lg font-semibold text-lg hover:from-indigo-700 hover:via-blue-700 hover:to-cyan-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? (
                 <div className="flex items-center justify-center space-x-2">
@@ -185,7 +213,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSwitchToSignup, onBack
               Don't have an account?{' '}
               <button
                 onClick={onSwitchToSignup}
-                className="text-blue-600 font-semibold hover:text-blue-700 transition-colors"
+                className="text-indigo-600 font-semibold hover:text-indigo-700 transition-colors"
               >
                 Sign Up
               </button>

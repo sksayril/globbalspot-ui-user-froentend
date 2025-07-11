@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, User, Mail, Phone, Lock, ArrowLeft, Gift, HelpCircle } from 'lucide-react';
+import { signupUser, storeAuthData, SignupRequest } from '../services/api';
 
 interface SignupPageProps {
   onSignup: (userData: any) => void;
@@ -44,10 +45,11 @@ const SignupPage: React.FC<SignupPageProps> = ({ onSignup, onSwitchToLogin, onBa
     }));
     
     // Clear error when user starts typing
-    if (errors[name]) {
-      setErrors(prev => ({
+    if (errors[name] || errors.general) {
+      setErrors((prev: any) => ({
         ...prev,
-        [name]: ''
+        [name]: '',
+        general: ''
       }));
     }
   };
@@ -71,6 +73,14 @@ const SignupPage: React.FC<SignupPageProps> = ({ onSignup, onSwitchToLogin, onBa
       newErrors.mobile = 'Mobile number is required';
     } else if (!/^\d{10}$/.test(formData.mobile.replace(/\D/g, ''))) {
       newErrors.mobile = 'Please enter a valid 10-digit mobile number';
+    }
+
+    if (!formData.password) {
+      newErrors.password = 'Password is required';
+    } else if (formData.password.length < 8) {
+      newErrors.password = 'Password must be at least 8 characters';
+    } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.password)) {
+      newErrors.password = 'Password must contain uppercase, lowercase, and number';
     }
 
     setErrors(newErrors);
@@ -129,25 +139,47 @@ const SignupPage: React.FC<SignupPageProps> = ({ onSignup, onSwitchToLogin, onBa
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateStep2()) return;
+    if (!validateStep1()) return;
 
     setIsLoading(true);
     
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      // Prepare API request body
+      const requestBody: SignupRequest = {
+        name: formData.name,
+        email: formData.email,
+        phone: formData.mobile,
+        password: formData.password,
+        referralCode: formData.referralCode || undefined
+      };
+
+      // Make API call using the service
+      const response = await signupUser(requestBody);
+
+      // Store authentication data
+      storeAuthData(response.data.token, response.data.user);
+
       setIsLoading(false);
-      onSignup(formData);
-    }, 2000);
+      
+      // Call the success callback to navigate to home
+      onSignup(response.data);
+    } catch (error) {
+      console.error('Signup error:', error);
+      setIsLoading(false);
+      setErrors({
+        general: error instanceof Error ? error.message : 'An unexpected error occurred. Please try again.'
+      });
+    }
   };
 
   const renderStep1 = () => (
     <div className="space-y-6">
       <div className="text-center mb-8">
-        <div className="w-20 h-20 bg-gradient-to-r from-blue-600 to-teal-600 rounded-full flex items-center justify-center mx-auto mb-4">
+        <div className="w-20 h-20 bg-gradient-to-r from-purple-600 via-pink-600 to-rose-600 rounded-full flex items-center justify-center mx-auto mb-4">
           <User className="w-10 h-10 text-white" />
         </div>
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">Create Account</h2>
-        <p className="text-gray-600">Step 1 of 2: Personal Information</p>
+        <h2 className="text-2xl font-bold text-gray-800 mb-2">Join Premium Investment</h2>
+        <p className="text-gray-600">Step 1 of 2: Create your elite investor account</p>
       </div>
 
       {/* Full Name */}
@@ -164,7 +196,7 @@ const SignupPage: React.FC<SignupPageProps> = ({ onSignup, onSwitchToLogin, onBa
             name="name"
             value={formData.name}
             onChange={handleInputChange}
-            className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
+            className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors ${
               errors.name ? 'border-red-500' : 'border-gray-300'
             }`}
             placeholder="Enter your full name"
@@ -189,7 +221,7 @@ const SignupPage: React.FC<SignupPageProps> = ({ onSignup, onSwitchToLogin, onBa
             name="email"
             value={formData.email}
             onChange={handleInputChange}
-            className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
+            className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors ${
               errors.email ? 'border-red-500' : 'border-gray-300'
             }`}
             placeholder="Enter your email"
@@ -214,7 +246,7 @@ const SignupPage: React.FC<SignupPageProps> = ({ onSignup, onSwitchToLogin, onBa
             name="mobile"
             value={formData.mobile}
             onChange={handleInputChange}
-            className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
+            className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors ${
               errors.mobile ? 'border-red-500' : 'border-gray-300'
             }`}
             placeholder="Enter your mobile number"
@@ -223,6 +255,45 @@ const SignupPage: React.FC<SignupPageProps> = ({ onSignup, onSwitchToLogin, onBa
         {errors.mobile && (
           <p className="mt-1 text-sm text-red-600">{errors.mobile}</p>
         )}
+      </div>
+
+      {/* Password */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Password *
+        </label>
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <Lock className="h-5 w-5 text-gray-400" />
+          </div>
+          <input
+            type={showPassword ? 'text' : 'password'}
+            name="password"
+            value={formData.password}
+            onChange={handleInputChange}
+            className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors ${
+              errors.password ? 'border-red-500' : 'border-gray-300'
+            }`}
+            placeholder="Create a strong password"
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute inset-y-0 right-0 pr-3 flex items-center"
+          >
+            {showPassword ? (
+              <EyeOff className="h-5 w-5 text-gray-400" />
+            ) : (
+              <Eye className="h-5 w-5 text-gray-400" />
+            )}
+          </button>
+        </div>
+        {errors.password && (
+          <p className="mt-1 text-sm text-red-600">{errors.password}</p>
+        )}
+        <p className="mt-1 text-sm text-gray-500">
+          Must contain uppercase, lowercase, and number (min 8 characters)
+        </p>
       </div>
 
       {/* Referral Code */}
@@ -239,7 +310,7 @@ const SignupPage: React.FC<SignupPageProps> = ({ onSignup, onSwitchToLogin, onBa
             name="referralCode"
             value={formData.referralCode}
             onChange={handleInputChange}
-            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors"
             placeholder="Enter referral code"
           />
         </div>
@@ -248,13 +319,20 @@ const SignupPage: React.FC<SignupPageProps> = ({ onSignup, onSwitchToLogin, onBa
         </p>
       </div>
 
-      {/* Next Button */}
+      {/* Submit Button */}
       <button
-        type="button"
-        onClick={handleNext}
-        className="w-full bg-gradient-to-r from-blue-600 to-teal-600 text-white py-3 rounded-lg font-semibold text-lg hover:from-blue-700 hover:to-teal-700 transition-all duration-200"
+        type="submit"
+        disabled={isLoading}
+        className="w-full bg-gradient-to-r from-purple-600 via-pink-600 to-rose-600 text-white py-3 rounded-lg font-semibold text-lg hover:from-purple-700 hover:via-pink-700 hover:to-rose-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        Next Step
+        {isLoading ? (
+          <div className="flex items-center justify-center space-x-2">
+            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+            <span>Creating Account...</span>
+          </div>
+        ) : (
+          'Sign In'
+        )}
       </button>
     </div>
   );
@@ -425,7 +503,7 @@ const SignupPage: React.FC<SignupPageProps> = ({ onSignup, onSwitchToLogin, onBa
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full bg-gradient-to-r from-blue-600 to-teal-600 text-white py-3 rounded-lg font-semibold text-lg hover:from-blue-700 hover:to-teal-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full bg-gradient-to-r from-purple-600 via-pink-600 to-rose-600 text-white py-3 rounded-lg font-semibold text-lg hover:from-purple-700 hover:via-pink-700 hover:to-rose-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isLoading ? (
             <div className="flex items-center justify-center space-x-2">
@@ -449,9 +527,9 @@ const SignupPage: React.FC<SignupPageProps> = ({ onSignup, onSwitchToLogin, onBa
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-teal-50">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-rose-50">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-teal-600 px-4 py-6 text-white">
+      <div className="bg-gradient-to-r from-purple-600 via-pink-600 to-rose-600 px-4 py-6 text-white">
         <div className="flex items-center space-x-4">
           <button
             onClick={handleBack}
@@ -459,7 +537,7 @@ const SignupPage: React.FC<SignupPageProps> = ({ onSignup, onSwitchToLogin, onBa
           >
             <ArrowLeft className="w-6 h-6" />
           </button>
-          <h1 className="text-xl font-semibold">Sign Up</h1>
+          <h1 className="text-xl font-semibold">Join Premium</h1>
         </div>
       </div>
 
@@ -467,15 +545,15 @@ const SignupPage: React.FC<SignupPageProps> = ({ onSignup, onSwitchToLogin, onBa
       <div className="px-4 py-4">
         <div className="flex items-center justify-center space-x-4">
           <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
-            currentStep >= 1 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
+            currentStep >= 1 ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-600'
           }`}>
             1
           </div>
           <div className={`w-16 h-1 rounded ${
-            currentStep >= 2 ? 'bg-blue-600' : 'bg-gray-200'
+            currentStep >= 2 ? 'bg-purple-600' : 'bg-gray-200'
           }`}></div>
           <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
-            currentStep >= 2 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
+            currentStep >= 2 ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-600'
           }`}>
             2
           </div>
@@ -485,6 +563,13 @@ const SignupPage: React.FC<SignupPageProps> = ({ onSignup, onSwitchToLogin, onBa
       {/* Signup Form */}
       <div className="px-4 pb-8">
         <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
+          {/* General Error Display */}
+          {errors.general && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-red-600 text-sm font-medium">{errors.general}</p>
+            </div>
+          )}
+          
           <form onSubmit={handleSubmit}>
             {currentStep === 1 ? renderStep1() : renderStep2()}
           </form>
@@ -495,7 +580,7 @@ const SignupPage: React.FC<SignupPageProps> = ({ onSignup, onSwitchToLogin, onBa
               Already have an account?{' '}
               <button
                 onClick={onSwitchToLogin}
-                className="text-blue-600 font-semibold hover:text-blue-700 transition-colors"
+                className="text-purple-600 font-semibold hover:text-purple-700 transition-colors"
               >
                 Sign In
               </button>
