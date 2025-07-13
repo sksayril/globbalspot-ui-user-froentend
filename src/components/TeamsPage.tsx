@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Copy, Share2, ChevronRight, Users, DollarSign, TrendingUp, X, Star, Crown, Shield, Award, Check } from 'lucide-react';
 import { CardSkeleton, GridSkeleton } from './SkeletonLoader';
+import { getTeamIncome, TeamIncomeResponse } from '../services/api';
 
 interface UserStats {
   dailyIncome?: {
@@ -26,19 +27,64 @@ interface TeamMember {
 }
 
 const TeamsPage: React.FC<TeamsPageProps> = ({ userStats, referralCode }) => {
-  // Show skeleton loader if data is loading
-  if (!userStats) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-        <div className="px-4 sm:px-6 py-8">
-          <div className="mb-8">
-            <CardSkeleton />
-          </div>
-          <GridSkeleton cols={2} rows={2} />
-        </div>
-      </div>
-    );
-  }
+  // State for API data
+  const [teamIncomeData, setTeamIncomeData] = useState<TeamIncomeResponse['data'] | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchTeamIncome = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await getTeamIncome();
+        setTeamIncomeData(res.data);
+      } catch (err: any) {
+        setError(err.message || 'Failed to fetch team income');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchTeamIncome();
+  }, []);
+
+  // Map API data to UI expected structure (MUST be before any return)
+  const api = teamIncomeData;
+  const teamLevels = [
+    { level: 'A', count: api?.teamIncomeByLevel.level1.count || 0, color: 'from-orange-500 to-orange-600', bgColor: 'bg-orange-50', iconColor: 'text-orange-600' },
+    { level: 'B', count: api?.teamIncomeByLevel.level2.count || 0, color: 'from-red-500 to-red-600', bgColor: 'bg-red-50', iconColor: 'text-red-600' },
+    { level: 'C', count: api?.teamIncomeByLevel.level3.count || 0, color: 'from-pink-500 to-pink-600', bgColor: 'bg-pink-50', iconColor: 'text-pink-600' },
+    { level: 'D', count: api?.teamIncomeByLevel.level4.count || 0, color: 'from-blue-500 to-blue-600', bgColor: 'bg-blue-50', iconColor: 'text-blue-600' },
+    { level: 'E', count: api?.teamIncomeByLevel.level5.count || 0, color: 'from-purple-500 to-purple-600', bgColor: 'bg-purple-50', iconColor: 'text-purple-600' }
+  ];
+  const teamAssets = [
+    { level: 'A', amount: api?.teamIncomeByLevel.level1.totalInvestmentWallet || 0, color: 'from-orange-500 to-orange-600', bgColor: 'bg-orange-50', iconColor: 'text-orange-600' },
+    { level: 'B', amount: api?.teamIncomeByLevel.level2.totalInvestmentWallet || 0, color: 'from-red-500 to-red-600', bgColor: 'bg-red-50', iconColor: 'text-red-600' },
+    { level: 'C', amount: api?.teamIncomeByLevel.level3.totalInvestmentWallet || 0, color: 'from-pink-500 to-pink-600', bgColor: 'bg-pink-50', iconColor: 'text-pink-600' },
+    { level: 'D', amount: api?.teamIncomeByLevel.level4.totalInvestmentWallet || 0, color: 'from-blue-500 to-blue-600', bgColor: 'bg-blue-50', iconColor: 'text-blue-600' },
+    { level: 'E', amount: api?.teamIncomeByLevel.level5.totalInvestmentWallet || 0, color: 'from-purple-500 to-purple-600', bgColor: 'bg-purple-50', iconColor: 'text-purple-600' }
+  ];
+  const teams = [
+    { level: 'A', count: api?.teamIncomeByLevel.level1.count || 0, color: 'from-teal-500 to-teal-600', name: 'Alpha Team', bgColor: 'bg-teal-50', iconColor: 'text-teal-600' },
+    { level: 'B', count: api?.teamIncomeByLevel.level2.count || 0, color: 'from-red-500 to-red-600', name: 'Beta Team', bgColor: 'bg-red-50', iconColor: 'text-red-600' },
+    { level: 'C', count: api?.teamIncomeByLevel.level3.count || 0, color: 'from-pink-500 to-pink-600', name: 'Gamma Team', bgColor: 'bg-pink-50', iconColor: 'text-pink-600' },
+    { level: 'D', count: api?.teamIncomeByLevel.level4.count || 0, color: 'from-blue-500 to-blue-600', name: 'Delta Team', bgColor: 'bg-blue-50', iconColor: 'text-blue-600' },
+    { level: 'E', count: api?.teamIncomeByLevel.level5.count || 0, color: 'from-purple-500 to-purple-600', name: 'Elite Team', bgColor: 'bg-purple-50', iconColor: 'text-purple-600' }
+  ];
+  const teamMembersData: { [key: string]: any[] } = {
+    A: api?.teamIncomeByLevel.level1.users || [],
+    B: api?.teamIncomeByLevel.level2.users || [],
+    C: api?.teamIncomeByLevel.level3.users || [],
+    D: api?.teamIncomeByLevel.level4.users || [],
+    E: api?.teamIncomeByLevel.level5.users || []
+  };
+  const mappedUserStats = {
+    dailyIncome: { totalEarned: 0, todayEarned: 0 },
+    referralLevel: 0,
+    teamIncome: api?.totalTeamIncome || 0,
+    teamMembers: api?.totalTeamMembers || 0,
+    inviteCode: api?.user.referralCode || ''
+  };
 
   const [copiedUID, setCopiedUID] = useState(false);
   const [copiedInvite, setCopiedInvite] = useState(false);
@@ -56,43 +102,6 @@ const TeamsPage: React.FC<TeamsPageProps> = ({ userStats, referralCode }) => {
     }
   };
 
-  const teamLevels = [
-    { level: 'A', count: 1, color: 'from-orange-500 to-orange-600', bgColor: 'bg-orange-50', iconColor: 'text-orange-600' },
-    { level: 'B', count: 1, color: 'from-red-500 to-red-600', bgColor: 'bg-red-50', iconColor: 'text-red-600' },
-    { level: 'C', count: 0, color: 'from-pink-500 to-pink-600', bgColor: 'bg-pink-50', iconColor: 'text-pink-600' },
-    { level: 'D', count: 0, color: 'from-blue-500 to-blue-600', bgColor: 'bg-blue-50', iconColor: 'text-blue-600' },
-    { level: 'E', count: 0, color: 'from-purple-500 to-purple-600', bgColor: 'bg-purple-50', iconColor: 'text-purple-600' }
-  ];
-
-  const teamAssets = [
-    { level: 'A', amount: 320, color: 'from-orange-500 to-orange-600', bgColor: 'bg-orange-50', iconColor: 'text-orange-600' },
-    { level: 'B', amount: 320, color: 'from-red-500 to-red-600', bgColor: 'bg-red-50', iconColor: 'text-red-600' },
-    { level: 'C', amount: 0, color: 'from-pink-500 to-pink-600', bgColor: 'bg-pink-50', iconColor: 'text-pink-600' },
-    { level: 'D', amount: 0, color: 'from-blue-500 to-blue-600', bgColor: 'bg-blue-50', iconColor: 'text-blue-600' },
-    { level: 'E', amount: 0, color: 'from-purple-500 to-purple-600', bgColor: 'bg-purple-50', iconColor: 'text-purple-600' }
-  ];
-
-  const teams = [
-    { level: 'A', count: 1, color: 'from-teal-500 to-teal-600', name: 'Alpha Team', bgColor: 'bg-teal-50', iconColor: 'text-teal-600' },
-    { level: 'B', count: 1, color: 'from-red-500 to-red-600', name: 'Beta Team', bgColor: 'bg-red-50', iconColor: 'text-red-600' },
-    { level: 'C', count: 0, color: 'from-pink-500 to-pink-600', name: 'Gamma Team', bgColor: 'bg-pink-50', iconColor: 'text-pink-600' },
-    { level: 'D', count: 0, color: 'from-blue-500 to-blue-600', name: 'Delta Team', bgColor: 'bg-blue-50', iconColor: 'text-blue-600' },
-    { level: 'E', count: 0, color: 'from-purple-500 to-purple-600', name: 'Elite Team', bgColor: 'bg-purple-50', iconColor: 'text-purple-600' }
-  ];
-
-  // Sample team member data for different levels
-  const teamMembersData: { [key: string]: TeamMember[] } = {
-    A: [
-      { account: '930****601', jointime: '02/07', referrer: 0, assets: 320 }
-    ],
-    B: [
-      { account: '930****601', jointime: '02/07', referrer: 0, assets: 320 }
-    ],
-    C: [],
-    D: [],
-    E: []
-  };
-
   const handleTeamLevelClick = (level: string) => {
     setSelectedTeamLevel(level);
     setShowTeamDetails(true);
@@ -107,6 +116,24 @@ const TeamsPage: React.FC<TeamsPageProps> = ({ userStats, referralCode }) => {
     const team = teams.find(t => t.level === level);
     return team ? team.color : 'from-gray-500 to-gray-600';
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+        <div className="px-4 sm:px-6 py-8">
+          <div className="mb-8">
+            <CardSkeleton />
+          </div>
+          <GridSkeleton cols={2} rows={2} />
+        </div>
+      </div>
+    );
+  }
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-red-600">{error}</div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
@@ -178,7 +205,7 @@ const TeamsPage: React.FC<TeamsPageProps> = ({ userStats, referralCode }) => {
                 <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-lg">
                   <Users className="w-6 h-6 text-white" />
                 </div>
-                <div className="text-2xl sm:text-3xl font-bold text-blue-600 mb-1">{userStats?.teamMembers || 0}</div>
+                <div className="text-2xl sm:text-3xl font-bold text-blue-600 mb-1">{api?.totalTeamMembers || api?.summary?.totalMembers || 0}</div>
                 <div className="text-xs sm:text-sm text-gray-600 font-medium">Team Members</div>
               </div>
             </div>
@@ -187,7 +214,7 @@ const TeamsPage: React.FC<TeamsPageProps> = ({ userStats, referralCode }) => {
                 <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-lg">
                   <TrendingUp className="w-6 h-6 text-white" />
                 </div>
-                <div className="text-2xl sm:text-3xl font-bold text-emerald-600 mb-1">${userStats?.teamIncome || 0}</div>
+                <div className="text-2xl sm:text-3xl font-bold text-emerald-600 mb-1">${api?.totalTeamIncome || 0}</div>
                 <div className="text-xs sm:text-sm text-gray-600 font-medium">Team Income</div>
               </div>
             </div>
@@ -196,7 +223,7 @@ const TeamsPage: React.FC<TeamsPageProps> = ({ userStats, referralCode }) => {
                 <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-lg">
                   <Award className="w-6 h-6 text-white" />
                 </div>
-                <div className="text-2xl sm:text-3xl font-bold text-purple-600 mb-1">Level {userStats?.referralLevel || 0}</div>
+                <div className="text-2xl sm:text-3xl font-bold text-purple-600 mb-1">Level {mappedUserStats?.referralLevel || 0}</div>
                 <div className="text-xs sm:text-sm text-gray-600 font-medium">VIP Level</div>
               </div>
             </div>
@@ -205,78 +232,15 @@ const TeamsPage: React.FC<TeamsPageProps> = ({ userStats, referralCode }) => {
                 <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-lg">
                   <Crown className="w-6 h-6 text-white" />
                 </div>
-                <div className="text-2xl sm:text-3xl font-bold text-orange-600 mb-1">${userStats?.dailyIncome?.totalEarned || 0}</div>
+                <div className="text-2xl sm:text-3xl font-bold text-orange-600 mb-1">${mappedUserStats?.dailyIncome?.totalEarned || 0}</div>
                 <div className="text-xs sm:text-sm text-gray-600 font-medium">Total Income</div>
               </div>
             </div>
           </div>
 
           {/* Team Benefits Section */}
-          <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-6 sm:p-8 shadow-xl border border-white/50">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4 mb-6">
-              <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
-                <Shield className="w-6 h-6 text-white" />
-              </div>
-              <div className="text-center sm:text-left">
-                <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2">Team Benefits</h2>
-                <p className="text-gray-600">Unlock rewards by building your team</p>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-              <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl p-6 border border-blue-200">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4 mb-4">
-                  <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
-                    <Users className="w-5 h-5 text-white" />
-                  </div>
-                  <div className="text-center sm:text-left">
-                    <h3 className="font-semibold text-blue-800 text-lg">Direct Referrals</h3>
-                    <p className="text-blue-600 text-sm">Earn from direct team members</p>
-                  </div>
-                </div>
-                <ul className="space-y-2 text-xs sm:text-sm text-blue-700">
-                  <li className="flex items-center space-x-2">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                    <span>5% commission on deposits</span>
-                  </li>
-                  <li className="flex items-center space-x-2">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                    <span>Daily income sharing</span>
-                  </li>
-                  <li className="flex items-center space-x-2">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                    <span>Level-based bonuses</span>
-                  </li>
-                </ul>
-              </div>
-              
-              <div className="bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl p-6 border border-purple-200">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4 mb-4">
-                  <div className="w-10 h-10 bg-purple-500 rounded-lg flex items-center justify-center">
-                    <Award className="w-5 h-5 text-white" />
-                  </div>
-                  <div className="text-center sm:text-left">
-                    <h3 className="font-semibold text-purple-800 text-lg">Team Rewards</h3>
-                    <p className="text-purple-600 text-sm">Unlock exclusive benefits</p>
-                  </div>
-                </div>
-                <ul className="space-y-2 text-xs sm:text-sm text-purple-700">
-                  <li className="flex items-center space-x-2">
-                    <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                    <span>Higher daily income rates</span>
-                  </li>
-                  <li className="flex items-center space-x-2">
-                    <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                    <span>VIP status upgrades</span>
-                  </li>
-                  <li className="flex items-center space-x-2">
-                    <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                    <span>Exclusive investment opportunities</span>
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </div>
+          {/* This section is now removed as per user request */}
+
         </div>
       </div>
 
@@ -305,32 +269,6 @@ const TeamsPage: React.FC<TeamsPageProps> = ({ userStats, referralCode }) => {
                   </button>
                   <div className="text-xl font-bold text-gray-800 mb-1">{level.count}</div>
                   <div className="text-sm text-gray-600 font-medium">Person</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Premium Team Assets */}
-        <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-xl border border-white/50 overflow-hidden">
-          <div className="flex items-center justify-between p-6 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg">
-                <DollarSign className="w-5 h-5 text-white" />
-              </div>
-              <h3 className="font-bold text-gray-800 text-lg">Team Assets</h3>
-            </div>
-            <ChevronRight className="w-5 h-5 text-gray-400" />
-          </div>
-          <div className="p-6">
-            <div className="grid grid-cols-5 gap-4">
-              {teamAssets.map((asset) => (
-                <div key={asset.level} className="text-center">
-                  <div className={`group w-14 h-14 bg-gradient-to-br ${asset.color} rounded-xl flex items-center justify-center mx-auto mb-3 shadow-lg hover:scale-110 transition-all duration-300 hover:shadow-xl`}>
-                    <span className="text-white font-bold text-lg">{asset.level}</span>
-                  </div>
-                  <div className="text-xl font-bold text-gray-800 mb-1">{asset.amount}</div>
-                  <div className="text-sm text-gray-600 font-medium">Assets</div>
                 </div>
               ))}
             </div>
@@ -402,22 +340,38 @@ const TeamsPage: React.FC<TeamsPageProps> = ({ userStats, referralCode }) => {
                   </div>
                   {teamMembersData[selectedTeamLevel].map((member, index) => (
                     <div key={index} className="bg-gradient-to-r from-gray-50 to-white p-4 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200">
-                      <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                         <div>
-                          <span className="text-gray-600 font-medium">Account:</span>
-                          <div className="font-semibold text-gray-800">{member.account}</div>
+                          <span className="text-gray-600 font-medium">Name:</span>
+                          <div className="font-semibold text-gray-800">{member.name}</div>
                         </div>
                         <div>
-                          <span className="text-gray-600 font-medium">Join Date:</span>
-                          <div className="font-semibold text-gray-800">{member.jointime}</div>
+                          <span className="text-gray-600 font-medium">Email:</span>
+                          <div className="font-semibold text-gray-800">{member.email}</div>
                         </div>
                         <div>
-                          <span className="text-gray-600 font-medium">Referrer:</span>
-                          <div className="font-semibold text-gray-800">{member.referrer}</div>
+                          <span className="text-gray-600 font-medium">Phone:</span>
+                          <div className="font-semibold text-gray-800">{member.phone}</div>
                         </div>
                         <div>
-                          <span className="text-gray-600 font-medium">Assets:</span>
-                          <div className="font-semibold text-emerald-600">${member.assets}</div>
+                          <span className="text-gray-600 font-medium">Referral Code:</span>
+                          <div className="font-semibold text-gray-800">{member.referralCode}</div>
+                        </div>
+                        <div>
+                          <span className="text-gray-600 font-medium">Normal Wallet:</span>
+                          <div className="font-semibold text-emerald-600">${member.normalWalletBalance}</div>
+                        </div>
+                        <div>
+                          <span className="text-gray-600 font-medium">Investment Wallet:</span>
+                          <div className="font-semibold text-blue-600">${member.investmentWalletBalance}</div>
+                        </div>
+                        <div>
+                          <span className="text-gray-600 font-medium">Daily Income:</span>
+                          <div className="font-semibold text-orange-600">${member.dailyIncomeEarned}</div>
+                        </div>
+                        <div>
+                          <span className="text-gray-600 font-medium">Joined:</span>
+                          <div className="font-semibold text-gray-800">{new Date(member.joinedDate).toLocaleDateString()}</div>
                         </div>
                       </div>
                     </div>

@@ -1,6 +1,13 @@
 // API base URL
 const API_BASE_URL = 'http://localhost:3100';
 
+// Global error handler for 401 responses
+let onUnauthorized: (() => void) | null = null;
+
+export const setUnauthorizedHandler = (handler: () => void) => {
+  onUnauthorized = handler;
+};
+
 // API request headers
 const getHeaders = () => ({
   'Content-Type': 'application/json',
@@ -20,8 +27,26 @@ const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
     });
 
     const data = await response.json();
+    
+    // Handle 401 Unauthorized errors
+    if (response.status === 401) {
+      // Clear auth data
+      clearAuthData();
+      
+      // Call the unauthorized handler if set
+      if (onUnauthorized) {
+        onUnauthorized();
+      }
+      
+      throw new Error('Session expired. Please login again.');
+    }
+    
     return { response, data };
   } catch (error) {
+    // If it's already a handled error, re-throw it
+    if (error instanceof Error && error.message.includes('Session expired')) {
+      throw error;
+    }
     throw new Error('Network error. Please check your connection and try again.');
   }
 };
@@ -169,16 +194,24 @@ export interface UserProfileResponse {
 export const getUserProfile = async (): Promise<UserProfileResponse> => {
   const token = getAuthToken();
   if (!token) throw new Error('No authentication token found');
-  const { response, data } = await apiRequest('/users/profile', {
-    method: 'GET',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-    },
-  });
-  if (!response.ok || !data.success) {
-    throw new Error(data.message || 'Failed to fetch user profile');
+  
+  try {
+    const { response, data } = await apiRequest('/users/profile', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    
+    if (!response.ok || !data.success) {
+      throw new Error(data.message || 'Failed to fetch user profile');
+    }
+    
+    return data;
+  } catch (error) {
+    // Re-throw the error to be handled by the calling component
+    throw error;
   }
-  return data;
 }; 
 
 export interface UpdateProfileRequest {
@@ -225,17 +258,24 @@ export interface UpdateProfileResponse {
 export const updateUserProfile = async (body: UpdateProfileRequest): Promise<UpdateProfileResponse> => {
   const token = getAuthToken();
   if (!token) throw new Error('No authentication token found');
-  const { response, data } = await apiRequest('/users/profile', {
-    method: 'PATCH',
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(body),
-  });
-  if (!response.ok || !data.success) {
-    throw new Error(data.message || 'Failed to update profile');
+  
+  try {
+    const { response, data } = await apiRequest('/users/profile', {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(body),
+    });
+    
+    if (!response.ok || !data.success) {
+      throw new Error(data.message || 'Failed to update profile');
+    }
+    
+    return data;
+  } catch (error) {
+    throw error;
   }
-  return data;
 }; 
 
 export interface WalletsResponse {
@@ -254,16 +294,23 @@ export interface WalletsResponse {
 export const getWallets = async (): Promise<WalletsResponse> => {
   const token = getAuthToken();
   if (!token) throw new Error('No authentication token found');
-  const { response, data } = await apiRequest('/users/wallets', {
-    method: 'GET',
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-  if (!response.ok || !data.success) {
-    throw new Error(data.message || 'Failed to fetch wallets');
+  
+  try {
+    const { response, data } = await apiRequest('/users/wallets', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    
+    if (!response.ok || !data.success) {
+      throw new Error(data.message || 'Failed to fetch wallets');
+    }
+    
+    return data;
+  } catch (error) {
+    throw error;
   }
-  return data;
 }; 
 
 export interface DepositRequest {
@@ -407,18 +454,22 @@ export const getUserReferrals = async (): Promise<ReferralsResponse> => {
   const token = getAuthToken();
   if (!token) throw new Error('No authentication token found');
   
-  const { response, data } = await apiRequest('/users/referrals', {
-    method: 'GET',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-    },
-  });
-
-  if (!response.ok || !data.success) {
-    throw new Error(data.message || 'Failed to fetch referrals');
+  try {
+    const { response, data } = await apiRequest('/users/referrals', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    
+    if (!response.ok || !data.success) {
+      throw new Error(data.message || 'Failed to fetch referrals');
+    }
+    
+    return data;
+  } catch (error) {
+    throw error;
   }
-
-  return data;
 }; 
 
 export interface TransferRequest {
@@ -512,3 +563,262 @@ export const getDailyIncomeStatus = async (): Promise<DailyIncomeStatusResponse>
   }
   return data;
 }; 
+
+export interface ContentItem {
+  _id: string;
+  title: string;
+  imageUrl: string;
+  textData: string;
+  isActive: boolean;
+  createdBy: {
+    _id: string;
+    name: string;
+    email: string;
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ContentListResponse {
+  success: boolean;
+  data: {
+    contents: ContentItem[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      pages: number;
+    };
+  };
+}
+
+export const getContentList = async (): Promise<ContentListResponse> => {
+  const token = getAuthToken();
+  if (!token) throw new Error('No authentication token found');
+  
+  try {
+    const { response, data } = await apiRequest('/content/users/list', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    
+    if (!response.ok || !data.success) {
+      throw new Error(data.message || 'Failed to fetch content list');
+    }
+    
+    return data;
+  } catch (error) {
+    throw error;
+  }
+}; 
+
+// Levels Status API
+export interface LevelsStatusResponse {
+  success: boolean;
+  data: {
+    characterLevel: {
+      current: string;
+      percentages: {
+        A: number;
+        B: number;
+        C: number;
+        D: number;
+        E: number;
+      };
+      lastCalculated: string;
+      totalEarned: number;
+    };
+    digitLevel: {
+      current: string;
+      criteria: {
+        Lvl1: { directMembers: number; memberWalletMin: number; selfWalletMin: number };
+        Lvl2: { directMembers: number; memberWalletMin: number; selfWalletMin: number };
+        Lvl3: { directMembers: number; memberWalletMin: number; selfWalletMin: number };
+        Lvl4: { directMembers: number; memberWalletMin: number; selfWalletMin: number };
+        Lvl5: { directMembers: number; memberWalletMin: number; selfWalletMin: number };
+      };
+      percentages: {
+        Lvl1: number;
+        Lvl2: number;
+        Lvl3: number;
+        Lvl4: number;
+        Lvl5: number;
+      };
+      lastCalculated: string;
+      totalEarned: number;
+      directMembers: Array<{
+        memberId: string;
+        joinedAt: string;
+        walletBalance: number;
+      }>;
+    };
+    potentialIncome: {
+      character: number;
+      digit: number;
+      total: number;
+    };
+    dailyIncome: {
+      characterLevel: number;
+      digitLevel: number;
+      lastClaimed: string;
+    };
+    canClaim: boolean;
+  };
+}
+
+export const getLevelsStatus = async (): Promise<LevelsStatusResponse> => {
+  const token = getAuthToken();
+  if (!token) throw new Error('No authentication token found');
+  
+  try {
+    const { response, data } = await apiRequest('/levels/status', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    
+    if (!response.ok || !data.success) {
+      throw new Error(data.message || 'Failed to fetch levels status');
+    }
+    
+    return data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Team Income API
+export interface TeamIncomeUser {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  referralCode: string;
+  normalWalletBalance: number;
+  investmentWalletBalance: number;
+  dailyIncomeEarned: number;
+  joinedDate: string;
+}
+
+export interface TeamIncomeLevel {
+  count: number;
+  totalNormalWallet: number;
+  totalInvestmentWallet: number;
+  totalDailyIncome: number;
+  users: TeamIncomeUser[];
+}
+
+export interface TeamIncomeSummary {
+  level1Members: number;
+  level2Members: number;
+  level3Members: number;
+  level4Members: number;
+  level5Members: number;
+  totalMembers: number;
+  totalIncome: number;
+  totalNormalWallet: number;
+  totalInvestmentWallet: number;
+}
+
+export interface TeamIncomeData {
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    referralCode: string;
+  };
+  teamIncomeByLevel: {
+    level1: TeamIncomeLevel;
+    level2: TeamIncomeLevel;
+    level3: TeamIncomeLevel;
+    level4: TeamIncomeLevel;
+    level5: TeamIncomeLevel;
+  };
+  totalTeamMembers: number;
+  totalTeamIncome: number;
+  totalNormalWalletBalance: number;
+  totalInvestmentWalletBalance: number;
+  summary: TeamIncomeSummary;
+}
+
+export interface TeamIncomeResponse {
+  success: boolean;
+  message: string;
+  data: TeamIncomeData;
+}
+
+export const getTeamIncome = async (): Promise<TeamIncomeResponse> => {
+  const token = getAuthToken();
+  if (!token) throw new Error('No authentication token found');
+  const { response, data } = await apiRequest('/users/team-income', {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+  if (!response.ok || !data.success) {
+    throw new Error(data.message || 'Failed to fetch team income');
+  }
+  return data;
+};
+
+// Transaction History API
+export interface Transaction {
+  type: string;
+  amount: number;
+  description: string;
+  date: string;
+  status: string;
+  walletType: string;
+  walletName: string;
+}
+
+export interface TransactionStats {
+  total: number;
+  byType: Record<string, number>;
+  byStatus: Record<string, number>;
+  totalAmount: {
+    deposits: number;
+    withdrawals: number;
+    transfers: number;
+    bonuses: number;
+    dailyIncome: number;
+  };
+}
+
+export interface TransactionPagination {
+  page: number;
+  limit: number;
+  total: number;
+  pages: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+}
+
+export interface TransactionsResponse {
+  success: boolean;
+  message: string;
+  data: {
+    transactions: Transaction[];
+    stats: TransactionStats;
+    pagination: TransactionPagination;
+  };
+}
+
+export const getTransactions = async (): Promise<TransactionsResponse> => {
+  const token = getAuthToken();
+  if (!token) throw new Error('No authentication token found');
+  const { response, data } = await apiRequest('/users/transactions', {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+  if (!response.ok || !data.success) {
+    throw new Error(data.message || 'Failed to fetch transactions');
+  }
+  return data;
+};

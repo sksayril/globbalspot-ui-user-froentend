@@ -1,6 +1,9 @@
-import React, { useState } from 'react';
-import { TrendingUp, Calendar, Target, Gift, DollarSign, Activity, Plus, Minus, Zap, Award, BarChart3, Clock, Wallet, CreditCard, Star, Crown, Shield } from 'lucide-react';
-import { updateUserProfile, createDeposit, claimDailyIncome, getDailyIncomeStatus } from '../services/api';
+import React, { useState, useEffect } from 'react';
+// @ts-ignore
+import Swal from 'sweetalert2';
+import 'sweetalert2/dist/sweetalert2.min.css';
+import { TrendingUp, Calendar, Target, Gift, DollarSign, Activity, Plus, Minus, Zap, Award, BarChart3, Clock, Wallet, CreditCard, Star, Crown, Shield, Copy } from 'lucide-react';
+import { updateUserProfile, createDeposit, claimDailyIncome, getDailyIncomeStatus, getContentList, ContentItem } from '../services/api';
 import { CardSkeleton, StatsCardSkeleton, GridSkeleton } from './SkeletonLoader';
 
 interface HomePageProps {
@@ -17,23 +20,104 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
   const [dailyIncomeError, setDailyIncomeError] = useState('');
   const [dailyIncomeLoading, setDailyIncomeLoading] = useState(false);
 
-  const handleDailySignIn = async () => {
-    setDailyIncomeSuccess('');
-    setDailyIncomeError('');
-    setDailyIncomeLoading(true);
-    try {
-      const response = await claimDailyIncome();
-      setDailyIncomeSuccess(response.message || 'Daily income claimed!');
-      if (onWalletsUpdate && response.data && typeof response.data.normalWalletBalance === 'number') {
-        onWalletsUpdate({
-          investmentWallet: { balance: investmentWalletBalance },
-          normalWallet: { balance: response.data.normalWalletBalance },
-        });
+  // Crypto wallet data state
+  const [cryptoWalletData, setCryptoWalletData] = useState<ContentItem | null>(null);
+  const [isLoadingCryptoData, setIsLoadingCryptoData] = useState(false);
+
+  // Fetch crypto wallet data on component mount
+  useEffect(() => {
+    const fetchCryptoWalletData = async () => {
+      setIsLoadingCryptoData(true);
+      try {
+        const response = await getContentList();
+        // Find the crypto wallet content (case insensitive search)
+        const cryptoWallet = response.data.contents.find(
+          content => content.title.toLowerCase().includes('crypto') && content.isActive
+        );
+        setCryptoWalletData(cryptoWallet || null);
+      } catch (error) {
+        console.error('Error fetching crypto wallet data:', error);
+        setCryptoWalletData(null);
+      } finally {
+        setIsLoadingCryptoData(false);
       }
-    } catch (err: any) {
-      setDailyIncomeError(err.message || 'Failed to claim daily income.');
+    };
+
+    fetchCryptoWalletData();
+  }, []);
+
+  // Copy wallet ID to clipboard
+  const copyWalletId = async (walletId: string) => {
+    try {
+      await navigator.clipboard.writeText(walletId);
+      // You could add a toast notification here
+      alert('Wallet ID copied to clipboard!');
+    } catch (error) {
+      console.error('Failed to copy wallet ID:', error);
+    }
+  };
+
+  const [claimMessage, setClaimMessage] = useState('');
+  const [claimType, setClaimType] = useState<'success' | 'error'>('success');
+  const [claimLoading, setClaimLoading] = useState(false);
+
+  // Refresh wallet data
+  const refreshWalletData = () => {
+    if (typeof onWalletsUpdate === 'function') {
+      // Optionally re-fetch wallets if you have such a function
+      onWalletsUpdate({
+        investmentWallet: { balance: investmentWalletBalance },
+        normalWallet: { balance: normalWalletBalance },
+      });
+    } else {
+      window.location.reload();
+    }
+  };
+
+  const handleDailySignIn = async () => {
+    setClaimLoading(true);
+    try {
+      const res = await fetch('http://localhost:3100/users/today-my-income', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      const data = await res.json();
+      const claimSuccess = data.success;
+      await Swal.fire({
+        icon: claimSuccess ? undefined : 'error',
+        title: claimSuccess ? '�� Daily Income Claimed!' : 'Oops!',
+        text: claimSuccess
+          ? (data.message || 'You have successfully claimed your daily income!')
+          : (data.message || 'Failed to claim daily income.'),
+        background: 'linear-gradient(135deg, #f0f4ff 0%, #e0ffe7 100%)',
+        color: '#222',
+        confirmButtonColor: claimSuccess ? '#22c55e' : '#ef4444',
+        confirmButtonText: claimSuccess ? 'Awesome!' : 'OK',
+        customClass: {
+          popup: 'swal2-border-radius',
+          title: 'swal2-title-bold',
+          confirmButton: 'swal2-confirm-custom'
+        },
+        showClass: {
+          popup: 'animate__animated animate__fadeInDown'
+        },
+        hideClass: {
+          popup: 'animate__animated animate__fadeOutUp'
+        }
+      });
+      refreshWalletData();
+    } catch (err) {
+      await Swal.fire({
+        icon: 'error',
+        title: 'Network Error',
+        text: 'Please try again.',
+        confirmButtonColor: '#ef4444'
+      });
     } finally {
-      setDailyIncomeLoading(false);
+      setClaimLoading(false);
     }
   };
 
@@ -95,7 +179,7 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [depositForm, setDepositForm] = useState({
     amount: '',
-    paymentMethod: 'upi',
+    paymentMethod: 'crypto',
     paymentId: '',
     walletType: 'investment',
     paymentProof: null as File | null,
@@ -137,7 +221,7 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
       });
       setDepositSuccess('Deposit request submitted!');
       setShowDepositModal(false);
-      setDepositForm({ amount: '', paymentMethod: 'upi', paymentId: '', walletType: 'investment', paymentProof: null });
+      setDepositForm({ amount: '', paymentMethod: 'crypto', paymentId: '', walletType: 'investment', paymentProof: null });
     } catch (err: any) {
       setDepositError(err.message || 'Failed to submit deposit.');
     } finally {
@@ -168,7 +252,7 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
         </div>
 
         {/* Content skeleton */}
-        <div className="px-4 sm:px-6 -mt-16 relative z-10 pb-8">
+        <div className="px-4 sm:px-6 mt-0 relative pb-8">
           {/* Quick actions skeleton */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
             <StatsCardSkeleton />
@@ -228,6 +312,15 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
     }
   };
 
+  const [showTransferSection, setShowTransferSection] = useState(false);
+  const [transferInput, setTransferInput] = useState('');
+  const [transferUser, setTransferUser] = useState<any>(null);
+  const [transferError, setTransferError] = useState('');
+  const [transferLoading, setTransferLoading] = useState(false);
+  const [transferAmount, setTransferAmount] = useState('');
+  const [transferSubmitLoading, setTransferSubmitLoading] = useState(false);
+  const [transferSubmitError, setTransferSubmitError] = useState('');
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       {/* Premium Header with Enhanced Glassmorphism */}
@@ -243,26 +336,12 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
           <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-white/10 to-transparent rounded-full blur-3xl"></div>
           <div className="absolute bottom-0 left-0 w-80 h-80 bg-gradient-to-tr from-purple-400/20 to-transparent rounded-full blur-2xl"></div>
           
-          <div className="absolute bottom-4 left-4 right-4">
-            <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-4 border border-white/20 shadow-2xl">
-              <div className="flex items-center space-x-3">
-                <div className="w-12 h-12 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-xl flex items-center justify-center shadow-lg">
-                  {/* <Crown className="w-6 h-6 text-white" /> */}
-                </div>
-                <div>
-                  {/* <h1 className="text-white text-lg font-bold bg-gradient-to-r from-white to-blue-100 bg-clip-text text-transparent">
-                    PREMIUM HOTELS & RESORTS
-                  </h1> */}
-                  <p className="text-white/80 text-sm">Investment Partners</p>
-                </div>
-              </div>
-            </div>
-          </div>
+          
         </div>
       </div>
 
       {/* Premium Quick Actions */}
-      <div className="px-4 sm:px-6 -mt-16 relative z-10">
+      <div className="px-4 sm:px-6 mt-0 relative pb-8">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
           <div className="group bg-white/80 backdrop-blur-xl rounded-2xl p-5 shadow-xl border border-white/50 hover:shadow-2xl hover:bg-white/90 transition-all duration-300 hover:-translate-y-1">
             <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
@@ -291,8 +370,8 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
                 <p className="text-sm text-gray-600">Move funds between wallets</p>
               </div>
               <button
+                onClick={() => setShowTransferSection(true)}
                 className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium"
-                onClick={() => setShowTransferModal(true)}
               >
                 Transfer
               </button>
@@ -316,7 +395,7 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
               <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-lg">
                 <Wallet className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
-              <div className="text-2xl sm:text-3xl font-bold text-blue-600 mb-1">${(userStats?.dailyIncome?.totalEarned || 0).toLocaleString()}</div>
+              <div className="text-2xl sm:text-3xl font-bold text-blue-600 mb-1">{(userStats?.dailyIncome?.totalEarned || 0).toLocaleString()}</div>
               <div className="text-xs sm:text-sm text-gray-600 font-medium">Total Income</div>
             </div>
           </div>
@@ -331,11 +410,30 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
           </div>
           <div className="group bg-white/80 backdrop-blur-xl rounded-2xl p-4 sm:p-5 shadow-xl border border-white/50 hover:shadow-2xl hover:bg-white/90 transition-all duration-300 hover:-translate-y-1">
             <div className="flex flex-col items-center text-center space-y-2 sm:space-y-3">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-lg">
-                <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-indigo-500 to-indigo-700 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-lg">
+                <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm0-6C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/>
+                </svg>
               </div>
-              <div className="text-xl sm:text-2xl font-bold text-orange-600 mb-1">${(userStats?.investmentWallet?.balance || 0).toLocaleString()}</div>
-              <div className="text-xs sm:text-sm text-gray-600 font-medium">Total Investment</div>
+              <div className="text-2xl sm:text-3xl font-bold text-indigo-700 mb-1">
+                ${(userStats?.investmentWallet?.balance || 0).toLocaleString()}
+              </div>
+              <div className="text-xs sm:text-sm text-gray-600 font-medium">My InvestWallet Balance</div>
+              <div className="text-xs sm:text-sm text-gray-500 mt-1 text-center">
+                You can use this balance for investment purposes.
+              </div>
+            </div>
+          </div>
+          {/* New Normal Wallet Balance Card */}
+          <div className="group bg-white/80 backdrop-blur-xl rounded-2xl p-4 sm:p-5 shadow-xl border border-white/50 hover:shadow-2xl hover:bg-white/90 transition-all duration-300 hover:-translate-y-1">
+            <div className="flex flex-col items-center text-center space-y-2 sm:space-y-3">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-lg">
+                <Wallet className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+              </div>
+              <div className="text-2xl sm:text-3xl font-bold text-blue-600 mb-1">
+                ${(userStats?.normalWallet?.balance || 0).toLocaleString()}
+              </div>
+              <div className="text-xs sm:text-sm text-gray-600 font-medium">Normal Wallet Balance</div>
             </div>
           </div>
         </div>
@@ -356,10 +454,10 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
               </div>
               <button
                 onClick={handleDailySignIn}
-                disabled={dailyIncomeLoading}
+                disabled={claimLoading}
                 className="px-3 sm:px-4 py-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-white rounded-lg hover:from-yellow-500 hover:to-orange-600 transition-all duration-300 font-medium shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed text-sm"
               >
-                {dailyIncomeLoading ? (
+                {claimLoading ? (
                   <div className="flex items-center space-x-2">
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                     <span>Claiming...</span>
@@ -453,7 +551,7 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
       {/* Update Profile Modal */}
       {showUpdateModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md relative">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md relative pb-24">
             <button
               className="absolute top-3 right-3 text-gray-400 hover:text-gray-700"
               onClick={() => setShowUpdateModal(false)}
@@ -463,7 +561,7 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
             <h2 className="text-xl font-bold mb-4">Update Profile</h2>
             {updateError && <div className="mb-2 text-red-600">{updateError}</div>}
             {updateSuccess && <div className="mb-2 text-green-600">{updateSuccess}</div>}
-            <form onSubmit={handleUpdateSubmit} className="space-y-4">
+            <form onSubmit={handleUpdateSubmit} className="space-y-4 pb-24">
               <div>
                 <label className="block text-sm font-medium mb-1">Name</label>
                 <input
@@ -570,16 +668,16 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
       {/* Deposit Modal */}
       {showDepositModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md relative">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xs sm:max-w-md p-4 sm:p-8 relative pb-24 overflow-y-auto max-h-[90vh]">
             <button
               className="absolute top-3 right-3 text-gray-400 hover:text-gray-700"
               onClick={() => setShowDepositModal(false)}
             >
               &times;
             </button>
-            <h2 className="text-xl font-bold mb-4">Deposit Funds</h2>
-            {depositError && <div className="mb-2 text-red-600">{depositError}</div>}
-            {depositSuccess && <div className="mb-2 text-green-600">{depositSuccess}</div>}
+            <h2 className="text-lg sm:text-xl font-bold mb-4">Deposit Funds</h2>
+            {depositError && <div className="mb-2 text-red-600 text-sm">{depositError}</div>}
+            {depositSuccess && <div className="mb-2 text-green-600 text-sm">{depositSuccess}</div>}
             <form onSubmit={handleDepositSubmit} className="space-y-4" encType="multipart/form-data">
               <div>
                 <label className="block text-sm font-medium mb-1">Amount</label>
@@ -588,33 +686,57 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
                   name="amount"
                   value={depositForm.amount}
                   onChange={handleDepositChange}
-                  className="w-full border rounded px-3 py-2"
+                  className="w-full border rounded px-3 py-2 text-base"
                   required
                 />
               </div>
-              <div>
+              {/* Payment method - always crypto */}
+              <div className="mb-2">
                 <label className="block text-sm font-medium mb-1">Payment Method</label>
-                <select
-                  name="paymentMethod"
-                  value={depositForm.paymentMethod}
-                  onChange={handleDepositChange}
-                  className="w-full border rounded px-3 py-2"
-                  required
-                >
-                  <option value="upi">UPI</option>
-                  <option value="crypto">Crypto</option>
-                  <option value="netbanking">Net Banking</option>
-                  <option value="bank">Bank Transfer</option>
-                </select>
+                <div className="w-full border rounded px-3 py-2 bg-gray-100 text-gray-700 font-medium text-base">Crypto Payment</div>
               </div>
-              {/* QR code section for UPI */}
-              {depositForm.paymentMethod === 'upi' && (
-                <div className="flex flex-col items-center mb-2">
-                  <label className="block text-sm font-medium mb-1">Scan UPI QR Code</label>
-                  <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=upi://pay?pa=UPI_ID" alt="UPI QR Code" className="w-36 h-36 rounded border mb-2" />
-                  <span className="text-xs text-gray-500">Scan this QR code with your UPI app to pay</span>
-                </div>
-              )}
+              {/* Crypto wallet QR code section */}
+              <div className="flex flex-col items-center mb-2 w-full">
+                <label className="block text-base font-semibold mb-2 text-center w-full">Crypto Wallet</label>
+                {isLoadingCryptoData ? (
+                  <div className="w-full max-w-[180px] aspect-square bg-gray-100 rounded border flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  </div>
+                ) : cryptoWalletData ? (
+                  <>
+                    {cryptoWalletData.imageUrl && (
+                      <div className="mb-4 w-full flex justify-center">
+                        <img
+                          src={`http://localhost:3100${cryptoWalletData.imageUrl}`}
+                          alt="Crypto Wallet QR Code"
+                          className="w-full max-w-[180px] aspect-square rounded border object-contain bg-white"
+                        />
+                      </div>
+                    )}
+                    <div className="text-center mb-4 w-full">
+                      <p className="text-sm text-gray-600 font-medium mb-2">Wallet ID:</p>
+                      <div className="flex items-center justify-center space-x-2 bg-gray-100 px-3 py-2 rounded-lg w-full max-w-xs mx-auto">
+                        <p className="text-base text-gray-800 font-mono break-all">{cryptoWalletData.textData}</p>
+                        <button
+                          type="button"
+                          onClick={() => copyWalletId(cryptoWalletData.textData)}
+                          className="text-blue-600 hover:text-blue-800 transition-colors flex-shrink-0"
+                          title="Copy wallet ID"
+                        >
+                          <Copy className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                    <div className="text-center mb-2">
+                      <span className="text-xs text-gray-500">Scan QR code or copy wallet ID to pay</span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="w-full max-w-[180px] aspect-square bg-gray-100 rounded border flex items-center justify-center">
+                    <span className="text-xs text-gray-500 text-center px-2">No crypto wallet data available</span>
+                  </div>
+                )}
+              </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Payment ID</label>
                 <input
@@ -622,7 +744,7 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
                   name="paymentId"
                   value={depositForm.paymentId}
                   onChange={handleDepositChange}
-                  className="w-full border rounded px-3 py-2"
+                  className="w-full border rounded px-3 py-2 text-base"
                   required
                 />
               </div>
@@ -632,7 +754,7 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
                   name="walletType"
                   value={depositForm.walletType}
                   onChange={handleDepositChange}
-                  className="w-full border rounded px-3 py-2"
+                  className="w-full border rounded px-3 py-2 text-base"
                   required
                 >
                   <option value="investment">Investment</option>
@@ -646,14 +768,14 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
                   name="paymentProof"
                   accept="image/*"
                   onChange={handleDepositChange}
-                  className="w-full border rounded px-3 py-2"
+                  className="w-full border rounded px-3 py-2 text-base"
                   required
                 />
               </div>
-              <div className="flex justify-end space-x-2 mt-4">
+              <div className="flex flex-col gap-2 sm:flex-row sm:gap-4 justify-end mt-4 mb-2">
                 <button
                   type="button"
-                  className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300"
+                  className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 w-full sm:w-auto"
                   onClick={() => setShowDepositModal(false)}
                   disabled={depositLoading}
                 >
@@ -661,12 +783,13 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-700"
+                  className="px-4 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-700 w-full sm:w-auto"
                   disabled={depositLoading}
                 >
                   {depositLoading ? 'Submitting...' : 'Submit'}
                 </button>
               </div>
+              <div className="mb-4" />
             </form>
           </div>
         </div>
@@ -696,6 +819,109 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
                 <div className="text-xs text-gray-500">Last Claimed: {statusData.lastClaimed ? new Date(statusData.lastClaimed).toLocaleString() : '-'}</div>
               </div>
             ) : null}
+          </div>
+        </div>
+      )}
+
+      {showTransferSection && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md relative">
+            <button
+              className="absolute top-3 right-3 text-gray-400 hover:text-gray-700"
+              onClick={() => setShowTransferSection(false)}
+            >
+              &times;
+            </button>
+            <h2 className="text-xl font-bold mb-4">Transfer to User</h2>
+            <input
+              type="text"
+              placeholder="Enter Referral Code or User ID"
+              value={transferInput}
+              onChange={e => setTransferInput(e.target.value)}
+              className="w-full border rounded px-3 py-2 mb-2"
+            />
+            <button
+              onClick={async () => {
+                setTransferLoading(true);
+                setTransferError('');
+                setTransferUser(null);
+                try {
+                  const res = await fetch(`http://localhost:3100/users/user-by-referral/${transferInput}`, {
+                    headers: {
+                      'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+                    },
+                  });
+                  const data = await res.json();
+                  if (data.success) {
+                    setTransferUser(data.data);
+                  } else {
+                    setTransferError(data.message || 'User not found');
+                  }
+                } catch {
+                  setTransferError('Network error');
+                } finally {
+                  setTransferLoading(false);
+                }
+              }}
+              className="bg-blue-600 text-white px-4 py-2 rounded"
+              disabled={transferLoading || !transferInput}
+            >
+              {transferLoading ? 'Searching...' : 'Find User'}
+            </button>
+            {transferError && <div className="text-red-600 mt-2">{transferError}</div>}
+            {transferUser && (
+              <div className="mt-4 p-4 bg-gray-50 rounded border">
+                <div><b>Name:</b> {transferUser.name}</div>
+                <div><b>Email:</b> {transferUser.email}</div>
+                <div><b>Referral Code:</b> {transferUser.referralCode}</div>
+                <div className="mt-4">
+                  <label className="block text-sm font-medium mb-1">Amount to Transfer</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={transferAmount}
+                    onChange={e => setTransferAmount(e.target.value)}
+                    className="w-full border rounded px-3 py-2 mb-2"
+                    placeholder="Enter amount"
+                  />
+                  <button
+                    onClick={async () => {
+                      setTransferSubmitLoading(true);
+                      setTransferSubmitError('');
+                      try {
+                        const res = await fetch('http://localhost:3100/users/transfer-to-user', {
+                          method: 'POST',
+                          headers: {
+                            'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+                            'Content-Type': 'application/json',
+                          },
+                          body: JSON.stringify({
+                            fromWallet: 'normalWallet', // always use this value
+                            referralCode: transferUser.referralCode,
+                            amount: Number(transferAmount),
+                          }),
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                          window.location.reload();
+                        } else {
+                          setTransferSubmitError(data.message || 'Transfer failed');
+                        }
+                      } catch {
+                        setTransferSubmitError('Network error');
+                      } finally {
+                        setTransferSubmitLoading(false);
+                      }
+                    }}
+                    className="bg-green-600 text-white px-4 py-2 rounded"
+                    disabled={transferSubmitLoading || !transferAmount || Number(transferAmount) <= 0}
+                  >
+                    {transferSubmitLoading ? 'Transferring...' : 'Transfer'}
+                  </button>
+                  {transferSubmitError && <div className="text-red-600 mt-2">{transferSubmitError}</div>}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

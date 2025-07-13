@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
-import { Home, Building2, Users, User, ArrowLeft, X, Copy, Share2, TrendingUp, Calendar, Target, Gift, DollarSign, Activity } from 'lucide-react';
+import React, { useState, useEffect, createContext, useContext } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { Home, Building2, Users, User, ArrowLeft, X, Copy, Share2, TrendingUp, Calendar, Target, Gift, DollarSign, Activity, AlertCircle, Trophy } from 'lucide-react';
 import { CardSkeleton, GridSkeleton } from './components/SkeletonLoader';
 import HomePage from './components/HomePage';
 import MyInvestmentsPage from './components/MyInvestmentsPage';
@@ -11,7 +11,8 @@ import ActivityPage from './components/ActivityPage';
 import PurchaseModal from './components/PurchaseModal';
 import LoginPage from './components/LoginPage';
 import SignupPage from './components/SignupPage';
-import { getUserProfile, getAuthToken, getWallets, getUserReferrals } from './services/api';
+import LevelsStatusPage from './components/LevelsStatusPage';
+import { getUserProfile, getAuthToken, getWallets, getUserReferrals, clearAuthData, setUnauthorizedHandler } from './services/api';
 
 export interface Hotel {
   id: string;
@@ -42,8 +43,100 @@ export interface Investment {
   status: 'active' | 'completed' | 'pending';
 }
 
+// Auth Context
+interface AuthContextType {
+  isAuthenticated: boolean;
+  setIsAuthenticated: (value: boolean) => void;
+  isLoading: boolean;
+  setIsLoading: (value: boolean) => void;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
+
+// Protected Route Component
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return <>{children}</>;
+};
+
+// Public Route Component (redirects to home if already authenticated)
+const PublicRoute = ({ children }: { children: React.ReactNode }) => {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isAuthenticated) {
+    return <Navigate to="/" replace />;
+  }
+
+  return <>{children}</>;
+};
+
+// Toast Component
+const Toast = ({ message, type, onClose }: { message: string; type: 'error' | 'success' | 'info'; onClose: () => void }) => {
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      onClose();
+    }, 5000);
+
+    return () => clearTimeout(timer);
+  }, [onClose]);
+
+  const bgColor = type === 'error' ? 'bg-red-500' : type === 'success' ? 'bg-green-500' : 'bg-blue-500';
+  const iconColor = type === 'error' ? 'text-red-500' : type === 'success' ? 'text-green-500' : 'text-blue-500';
+
+  return (
+    <div className={`fixed top-4 right-4 z-50 ${bgColor} text-white px-6 py-4 rounded-lg shadow-lg max-w-sm animate-in slide-in-from-right`}>
+      <div className="flex items-center space-x-3">
+        <AlertCircle className="w-5 h-5 flex-shrink-0" />
+        <p className="text-sm font-medium">{message}</p>
+        <button
+          onClick={onClose}
+          className="ml-auto text-white hover:text-gray-200 transition-colors"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+  );
+};
+
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState('home');
   const [selectedHotel, setSelectedHotel] = useState<Hotel | null>(null);
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
@@ -57,14 +150,45 @@ function App() {
   const [referrals, setReferrals] = useState<any[]>([]);
   const [referralCode, setReferralCode] = useState<string>('');
   const [isLoadingReferrals, setIsLoadingReferrals] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' | 'info' } | null>(null);
+
+  // Set up unauthorized handler
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      setIsAuthenticated(false);
+      setProfile(null);
+      setWallets({
+        investmentWallet: { balance: 0 },
+        normalWallet: { balance: 0 }
+      });
+      setReferrals([]);
+      setReferralCode('');
+      setCurrentPage('home');
+      
+      // Show toast notification
+      setToast({
+        message: 'Session expired. Please login again.',
+        type: 'error'
+      });
+    };
+
+    setUnauthorizedHandler(handleUnauthorized);
+  }, []);
 
   // Check for existing authentication on component mount
   useEffect(() => {
-    const token = getAuthToken();
-    if (token) {
-      setIsAuthenticated(true);
-      handleAuthSuccess();
-    }
+    const checkAuth = () => {
+      const token = getAuthToken();
+      if (token) {
+        setIsAuthenticated(true);
+        handleAuthSuccess();
+      } else {
+        setIsAuthenticated(false);
+      }
+      setIsLoading(false);
+    };
+
+    checkAuth();
   }, []);
 
   const hotels: Hotel[] = [
@@ -209,7 +333,12 @@ function App() {
       const walletsResponse = await getWallets();
       setWallets(walletsResponse.data);
     } catch (error) {
-      // Optionally handle error
+      console.error('Error fetching wallets:', error);
+      // Don't show error message for 401 as it's handled automatically
+      if (error instanceof Error && !error.message.includes('Session expired')) {
+        // You could show a toast notification here for other errors
+        console.error('Wallets fetch error:', error.message);
+      }
     } finally {
       setIsLoadingWallets(false);
     }
@@ -221,7 +350,13 @@ function App() {
       const referralsResponse = await getUserReferrals();
       setReferralCode(referralsResponse.data.referralCode);
     } catch (error) {
+      console.error('Error fetching referrals:', error);
       setReferralCode('');
+      // Don't show error message for 401 as it's handled automatically
+      if (error instanceof Error && !error.message.includes('Session expired')) {
+        // You could show a toast notification here for other errors
+        console.error('Referrals fetch error:', error.message);
+      }
     } finally {
       setIsLoadingReferrals(false);
     }
@@ -242,14 +377,28 @@ function App() {
       const profileResponse = await getUserProfile();
       setProfile(profileResponse.data);
     } catch (error) {
+      console.error('Error fetching profile:', error);
       setProfile(null);
+      // Don't show error message for 401 as it's handled automatically
+      if (error instanceof Error && !error.message.includes('Session expired')) {
+        // You could show a toast notification here for other errors
+        console.error('Profile fetch error:', error.message);
+      }
     } finally {
       setIsLoadingProfile(false);
     }
   };
 
   const handleLogout = () => {
+    clearAuthData();
     setIsAuthenticated(false);
+    setProfile(null);
+    setWallets({
+      investmentWallet: { balance: 0 },
+      normalWallet: { balance: 0 }
+    });
+    setReferrals([]);
+    setReferralCode('');
     setCurrentPage('home');
   };
 
@@ -277,17 +426,25 @@ function App() {
   };
 
   const handleLogin = async (credentials: any) => {
-    console.log('Login attempt:', credentials);
-    // The login API call is handled in LoginPage component
-    // This function is called after successful login
-    await handleAuthSuccess();
+    try {
+      // This would be replaced with actual login API call
+      // For now, simulate successful login
+      setIsAuthenticated(true);
+      await handleAuthSuccess();
+    } catch (error) {
+      throw error;
+    }
   };
 
   const handleSignup = async (userData: any) => {
-    console.log('Signup attempt:', userData);
-    // The signup API call is handled in SignupPage component
-    // This function is called after successful signup
-    await handleAuthSuccess();
+    try {
+      // This would be replaced with actual signup API call
+      // For now, simulate successful signup
+      setIsAuthenticated(true);
+      await handleAuthSuccess();
+    } catch (error) {
+      throw error;
+    }
   };
 
   const renderPage = () => {
@@ -306,6 +463,8 @@ function App() {
         ) : null;
       case 'teams':
         return <TeamsPage userStats={profile} referralCode={referralCode} />;
+      case 'levels-status':
+        return <LevelsStatusPage />;
       case 'activity':
         return <ActivityPage userStats={profile} />;
       case 'profile':
@@ -387,6 +546,16 @@ function App() {
           </button>
           
           <button
+            onClick={() => setCurrentPage('levels-status')}
+            className={`flex flex-col items-center justify-center py-1 px-2 min-w-0 flex-1 transition-colors ${
+              currentPage === 'levels-status' ? 'text-blue-600' : 'text-gray-600'
+            }`}
+          >
+            <Trophy className="w-6 h-6 mb-1 flex-shrink-0" />
+            <span className="text-xs leading-tight font-medium">Levels</span>
+          </button>
+          
+          <button
             onClick={() => setCurrentPage('activity')}
             className={`flex flex-col items-center justify-center py-1 px-2 min-w-0 flex-1 transition-colors ${
               currentPage === 'activity' ? 'text-blue-600' : 'text-gray-600'
@@ -444,45 +613,55 @@ function App() {
     );
   };
 
+  // Auth context value
+  const authContextValue: AuthContextType = {
+    isAuthenticated,
+    setIsAuthenticated,
+    isLoading,
+    setIsLoading
+  };
+
   return (
-    <Router>
-      <Routes>
-        {/* Public routes */}
-        <Route path="/login" element={
-          !isAuthenticated ? (
-            <LoginPageWrapper />
-          ) : (
-            <Navigate to="/" replace />
-          )
-        } />
-        
-        <Route path="/signup" element={
-          !isAuthenticated ? (
-            <SignupPageWrapper />
-          ) : (
-            <Navigate to="/" replace />
-          )
-        } />
-        
-        {/* Protected routes */}
-        <Route path="/" element={
-          isAuthenticated ? (
-            <AuthenticatedApp />
-          ) : (
-            <Navigate to="/login" replace />
-          )
-        } />
-        
-        {/* Catch all route */}
-        <Route path="*" element={
-          isAuthenticated ? (
-            <AuthenticatedApp />
-          ) : (
-            <Navigate to="/login" replace />
-          )
-        } />
-      </Routes>
-    </Router>
+    <AuthContext.Provider value={authContextValue}>
+      <Router>
+        <Routes>
+          {/* Public routes - redirect to home if already authenticated */}
+          <Route path="/login" element={
+            <PublicRoute>
+              <LoginPageWrapper />
+            </PublicRoute>
+          } />
+          
+          <Route path="/signup" element={
+            <PublicRoute>
+              <SignupPageWrapper />
+            </PublicRoute>
+          } />
+          
+          {/* Protected routes - redirect to login if not authenticated */}
+          <Route path="/" element={
+            <ProtectedRoute>
+              <AuthenticatedApp />
+            </ProtectedRoute>
+          } />
+          
+          {/* Catch all route - redirect to login if not authenticated */}
+          <Route path="*" element={
+            <ProtectedRoute>
+              <AuthenticatedApp />
+            </ProtectedRoute>
+          } />
+        </Routes>
+
+        {toast && (
+          <Toast
+            message={toast.message}
+            type={toast.type}
+            onClose={() => setToast(null)}
+          />
+        )}
+      </Router>
+    </AuthContext.Provider>
   );
 }
 

@@ -161,7 +161,7 @@ const SignupPage: React.FC<SignupPageProps> = ({ onSignup, onSwitchToLogin, onBa
 
       setIsLoading(false);
       
-      // Call the success callback to navigate to home
+      // Call the success callback to update authentication state
       onSignup(response.data);
     } catch (error) {
       console.error('Signup error:', error);

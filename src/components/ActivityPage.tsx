@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Calendar, TrendingUp, DollarSign, Clock, Filter, Search, ChevronDown, Star, Crown, Award, Shield } from 'lucide-react';
+import { getTransactions, TransactionsResponse, Transaction } from '../services/api';
 
 interface UserStats {
   dailyIncome: number;
@@ -17,98 +18,51 @@ interface ActivityPageProps {
   userStats: UserStats;
 }
 
-interface ActivityItem {
-  id: string;
-  type: 'investment' | 'income' | 'withdrawal' | 'bonus' | 'team';
-  title: string;
-  description: string;
-  amount: number;
-  date: string;
-  status: 'completed' | 'pending' | 'failed';
-}
-
 const ActivityPage: React.FC<ActivityPageProps> = ({ userStats }) => {
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [showFilters, setShowFilters] = useState(false);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [stats, setStats] = useState<TransactionsResponse['data']['stats'] | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const activities: ActivityItem[] = [
-    {
-      id: '1',
-      type: 'income',
-      title: 'Daily Income',
-      description: 'Economy hotel: E2 daily return',
-      amount: 60,
-      date: '2024-01-20',
-      status: 'completed'
-    },
-    {
-      id: '2',
-      type: 'income',
-      title: 'Daily Income',
-      description: 'Economy hotel: E3 daily return',
-      amount: 155,
-      date: '2024-01-20',
-      status: 'completed'
-    },
-    {
-      id: '3',
-      type: 'investment',
-      title: 'New Investment',
-      description: 'Purchased Economy hotel: E4',
-      amount: -10000,
-      date: '2024-01-19',
-      status: 'completed'
-    },
-    {
-      id: '4',
-      type: 'bonus',
-      title: 'Check-in Bonus',
-      description: 'Daily check-in reward',
-      amount: 50,
-      date: '2024-01-19',
-      status: 'completed'
-    },
-    {
-      id: '5',
-      type: 'team',
-      title: 'Team Commission',
-      description: 'Commission from team member investment',
-      amount: 320,
-      date: '2024-01-18',
-      status: 'completed'
-    },
-    {
-      id: '6',
-      type: 'withdrawal',
-      title: 'Withdrawal',
-      description: 'Withdrawal to bank account',
-      amount: -5000,
-      date: '2024-01-17',
-      status: 'pending'
-    },
-    {
-      id: '7',
-      type: 'income',
-      title: 'Daily Income',
-      description: 'Economy hotel: V2 daily return',
-      amount: 1700,
-      date: '2024-01-17',
-      status: 'completed'
-    }
-  ];
+  useEffect(() => {
+    const fetchTransactions = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await getTransactions();
+        setTransactions(res.data.transactions);
+        setStats(res.data.stats);
+      } catch (err: any) {
+        setError(err.message || 'Failed to fetch transactions');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchTransactions();
+  }, []);
 
   const getActivityIcon = (type: string) => {
     switch (type) {
       case 'investment':
+      case 'deposit':
         return <TrendingUp className="w-5 h-5" />;
       case 'income':
+      case 'daily_income':
         return <DollarSign className="w-5 h-5" />;
       case 'withdrawal':
         return <DollarSign className="w-5 h-5" />;
       case 'bonus':
+      case 'referral_bonus':
         return <Award className="w-5 h-5" />;
       case 'team':
+      case 'commission':
         return <Star className="w-5 h-5" />;
+      case 'transfer':
+      case 'transfer_to_user':
+      case 'transfer_from_user':
+        return <Crown className="w-5 h-5" />;
       default:
         return <Clock className="w-5 h-5" />;
     }
@@ -118,10 +72,13 @@ const ActivityPage: React.FC<ActivityPageProps> = ({ userStats }) => {
     if (amount > 0) {
       switch (type) {
         case 'income':
+        case 'daily_income':
           return 'from-emerald-500 to-emerald-600';
         case 'bonus':
+        case 'referral_bonus':
           return 'from-yellow-500 to-yellow-600';
         case 'team':
+        case 'commission':
           return 'from-purple-500 to-purple-600';
         default:
           return 'from-green-500 to-green-600';
@@ -129,9 +86,14 @@ const ActivityPage: React.FC<ActivityPageProps> = ({ userStats }) => {
     } else {
       switch (type) {
         case 'investment':
+        case 'deposit':
           return 'from-blue-500 to-blue-600';
         case 'withdrawal':
           return 'from-orange-500 to-orange-600';
+        case 'transfer':
+        case 'transfer_to_user':
+        case 'transfer_from_user':
+          return 'from-indigo-500 to-indigo-600';
         default:
           return 'from-red-500 to-red-600';
       }
@@ -141,27 +103,37 @@ const ActivityPage: React.FC<ActivityPageProps> = ({ userStats }) => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed':
+      case 'approved':
         return 'text-emerald-600 bg-emerald-100 border-emerald-200';
       case 'pending':
         return 'text-orange-600 bg-orange-100 border-orange-200';
       case 'failed':
+      case 'rejected':
         return 'text-red-600 bg-red-100 border-red-200';
       default:
         return 'text-gray-600 bg-gray-100 border-gray-200';
     }
   };
 
-  const filteredActivities = selectedFilter === 'all' 
-    ? activities 
-    : activities.filter(activity => activity.type === selectedFilter);
+  const filteredActivities = selectedFilter === 'all'
+    ? transactions
+    : transactions.filter(activity => activity.type === selectedFilter);
 
-  const totalIncome = activities
-    .filter(a => a.amount > 0 && a.status === 'completed')
-    .reduce((sum, a) => sum + a.amount, 0);
+  // Use API stats for summary if available
+  const totalIncome = stats?.totalAmount?.deposits || 0;
+  const totalWithdrawals = stats?.totalAmount?.withdrawals || 0;
+  const totalTransactions = stats?.total || transactions.length;
 
-  const totalWithdrawals = activities
-    .filter(a => a.amount < 0 && a.type === 'withdrawal' && a.status === 'completed')
-    .reduce((sum, a) => sum + Math.abs(a.amount), 0);
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-gray-500">Loading...</div>
+    );
+  }
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-red-600">{error}</div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
@@ -201,7 +173,7 @@ const ActivityPage: React.FC<ActivityPageProps> = ({ userStats }) => {
                   <DollarSign className="w-6 h-6 text-white" />
                 </div>
                 <div className="text-2xl font-bold mb-1">${totalIncome.toLocaleString()}</div>
-                <div className="text-sm text-white/80">Total Income</div>
+                <div className="text-sm text-white/80">Total Deposits</div>
               </div>
               <div className="group">
                 <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center mx-auto mb-3 border border-white/30 shadow-lg group-hover:scale-110 transition-transform duration-300">
@@ -214,7 +186,7 @@ const ActivityPage: React.FC<ActivityPageProps> = ({ userStats }) => {
                 <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center mx-auto mb-3 border border-white/30 shadow-lg group-hover:scale-110 transition-transform duration-300">
                   <Star className="w-6 h-6 text-white" />
                 </div>
-                <div className="text-2xl font-bold mb-1">{activities.length}</div>
+                <div className="text-2xl font-bold mb-1">{totalTransactions}</div>
                 <div className="text-sm text-white/80">Transactions</div>
               </div>
             </div>
@@ -226,7 +198,7 @@ const ActivityPage: React.FC<ActivityPageProps> = ({ userStats }) => {
       {showFilters && (
         <div className="bg-white/80 backdrop-blur-xl border-b border-gray-200 px-6 py-4 shadow-lg">
           <div className="flex space-x-3 overflow-x-auto">
-            {['all', 'income', 'investment', 'withdrawal', 'bonus', 'team'].map((filter) => (
+            {['all', 'deposit', 'withdrawal', 'transfer', 'transfer_to_user', 'transfer_from_user', 'referral_bonus', 'daily_income', 'commission'].map((filter) => (
               <button
                 key={filter}
                 onClick={() => setSelectedFilter(filter)}
@@ -236,7 +208,7 @@ const ActivityPage: React.FC<ActivityPageProps> = ({ userStats }) => {
                     : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
                 }`}
               >
-                {filter.charAt(0).toUpperCase() + filter.slice(1)}
+                {filter.charAt(0).toUpperCase() + filter.slice(1).replace(/_/g, ' ')}
               </button>
             ))}
           </div>
@@ -245,23 +217,22 @@ const ActivityPage: React.FC<ActivityPageProps> = ({ userStats }) => {
 
       {/* Premium Activity List */}
       <div className="p-6 space-y-4 pb-24">
-        {filteredActivities.map((activity) => (
+        {filteredActivities.map((activity, idx) => (
           <div
-            key={activity.id}
+            key={idx}
             className="group bg-white/80 backdrop-blur-xl rounded-2xl shadow-xl border border-white/50 p-6 hover:shadow-2xl hover:bg-white/90 transition-all duration-300 hover:-translate-y-1"
           >
             <div className="flex items-center space-x-4">
               {/* Premium Activity Icon */}
               <div className={`w-14 h-14 bg-gradient-to-r ${getActivityColor(activity.type, activity.amount)} rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300`}>
                 {getActivityIcon(activity.type)}
-                <span className="text-white">{getActivityIcon(activity.type)}</span>
               </div>
 
               {/* Activity Details */}
               <div className="flex-1">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="font-bold text-gray-800 text-lg group-hover:text-gray-900 transition-colors">
-                    {activity.title}
+                    {activity.description}
                   </h3>
                   <div className="flex items-center space-x-3">
                     <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(activity.status)}`}>
@@ -276,21 +247,21 @@ const ActivityPage: React.FC<ActivityPageProps> = ({ userStats }) => {
                     </span>
                   </div>
                 </div>
-                
-                <p className="text-gray-600 text-sm mb-3 leading-relaxed">{activity.description}</p>
-                
+                <div className="flex flex-wrap gap-2 mb-2">
+                  <span className="text-xs text-gray-500 bg-gray-100 rounded px-2 py-1">{activity.walletName}</span>
+                  <span className="text-xs text-gray-500 bg-gray-100 rounded px-2 py-1">{activity.type.replace(/_/g, ' ')}</span>
+                </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2 text-xs text-gray-500">
                     <Calendar className="w-3 h-3" />
                     <span>{new Date(activity.date).toLocaleDateString()}</span>
                   </div>
                   <div className="text-xs text-gray-500">
-                    Transaction ID: {activity.id}
+                    Status: {activity.status.charAt(0).toUpperCase() + activity.status.slice(1)}
                   </div>
                 </div>
               </div>
             </div>
-            
             {/* Premium Hover Overlay */}
             <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none rounded-2xl"></div>
           </div>

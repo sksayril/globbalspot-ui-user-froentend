@@ -74,7 +74,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSwitchToSignup, onBack
 
       setIsLoading(false);
       
-      // Call the success callback to navigate to home
+      // Call the success callback to update authentication state
       onLogin(response.data);
     } catch (error) {
       console.error('Login error:', error);
