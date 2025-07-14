@@ -1,5 +1,6 @@
 // API base URL
-const API_BASE_URL = 'http://localhost:3100';
+// const API_BASE_URL = 'http://localhost:3100';
+const API_BASE_URL = 'https://7cvccltb-3100.inc1.devtunnels.ms';
 
 // Global error handler for 401 responses
 let onUnauthorized: (() => void) | null = null;
@@ -819,6 +820,179 @@ export const getTransactions = async (): Promise<TransactionsResponse> => {
   });
   if (!response.ok || !data.success) {
     throw new Error(data.message || 'Failed to fetch transactions');
+  }
+  return data;
+};
+
+// Withdrawal Request API
+export interface WithdrawalRequest {
+  amount: number;
+  walletAddress: string;
+}
+
+export interface WithdrawalResponse {
+  success: boolean;
+  message: string;
+  data?: {
+    id: string;
+    amount: number;
+    walletAddress: string;
+    status: string;
+    createdAt: string;
+  };
+}
+
+export const createWithdrawalRequest = async (body: WithdrawalRequest): Promise<WithdrawalResponse> => {
+  const token = getAuthToken();
+  if (!token) throw new Error('No authentication token found');
+  
+  try {
+    const { response, data } = await apiRequest('/withdrawal/request', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+    
+    if (!response.ok || !data.success) {
+      throw new Error(data.message || 'Failed to create withdrawal request');
+    }
+    
+    return data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export interface InvestmentPlan {
+  _id: string;
+  title: string;
+  description: string;
+  image: string;
+  investmentRequired: number;
+  dailyPercentage: number;
+  durationDays: number;
+  isActive: boolean;
+  totalReturnPercentage: number;
+  createdAt: string;
+  updatedAt: string;
+  __v: number;
+}
+
+export interface InvestmentPlansResponse {
+  success: boolean;
+  data: InvestmentPlan[];
+}
+
+export const getInvestmentPlans = async (): Promise<InvestmentPlansResponse> => {
+  const token = getAuthToken();
+  if (!token) throw new Error('No authentication token found');
+  const { response, data } = await apiRequest('/investment/plans', {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+  if (!response.ok || !data.success) {
+    throw new Error(data.message || 'Failed to fetch investment plans');
+  }
+  return data;
+};
+
+export interface PurchaseInvestmentRequest {
+  planId: string;
+  investmentAmount: number;
+}
+
+export interface PurchaseInvestmentResponse {
+  success: boolean;
+  message: string;
+  data: {
+    investment: {
+      id: string;
+      userId: string;
+      planId: string;
+      investmentAmount: number;
+      dailyEarning: number;
+      totalEarned: number;
+      startDate: string;
+      endDate: string;
+      isCompleted: boolean;
+      isWithdrawn: boolean;
+    };
+    plan: {
+      id: string;
+      title: string;
+      durationDays: number;
+    };
+    remainingBalance: number;
+  };
+}
+
+export const purchaseInvestment = async (body: PurchaseInvestmentRequest): Promise<PurchaseInvestmentResponse> => {
+  const token = getAuthToken();
+  if (!token) throw new Error('No authentication token found');
+  const { response, data } = await apiRequest('/investment/purchase', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok || !data.success) {
+    throw new Error(data.message || 'Failed to purchase investment');
+  }
+  return data;
+};
+
+export interface MyInvestmentPlan {
+  id: string;
+  _id: string; // Add this line to match API response
+  title: string;
+  description: string;
+  image: string;
+}
+
+export interface MyInvestmentDailyEarning {
+  date: string;
+  amount: number;
+  isClaimed: boolean;
+}
+
+export interface MyInvestment {
+  id: string;
+  planId: MyInvestmentPlan;
+  investmentAmount: number;
+  dailyEarning: number;
+  totalEarned: number;
+  startDate: string;
+  endDate: string;
+  isCompleted: boolean;
+  isWithdrawn: boolean;
+  remainingDays: number;
+  totalReturnAmount: number;
+  dailyEarnings: MyInvestmentDailyEarning[];
+}
+
+export interface MyInvestmentsResponse {
+  success: boolean;
+  data: MyInvestment[];
+}
+
+export const getMyInvestments = async (): Promise<MyInvestmentsResponse> => {
+  const token = getAuthToken();
+  if (!token) throw new Error('No authentication token found');
+  const { response, data } = await apiRequest('/investment/my-investments', {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+  if (!response.ok || !data.success) {
+    throw new Error(data.message || 'Failed to fetch my investments');
   }
   return data;
 };

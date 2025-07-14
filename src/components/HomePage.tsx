@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import Swal from 'sweetalert2';
 import 'sweetalert2/dist/sweetalert2.min.css';
 import { TrendingUp, Calendar, Target, Gift, DollarSign, Activity, Plus, Minus, Zap, Award, BarChart3, Clock, Wallet, CreditCard, Star, Crown, Shield, Copy } from 'lucide-react';
-import { updateUserProfile, createDeposit, claimDailyIncome, getDailyIncomeStatus, getContentList, ContentItem } from '../services/api';
+import { updateUserProfile, createDeposit, claimDailyIncome, getDailyIncomeStatus, getContentList, ContentItem, createWithdrawalRequest } from '../services/api';
 import { CardSkeleton, StatsCardSkeleton, GridSkeleton } from './SkeletonLoader';
 
 interface HomePageProps {
@@ -175,6 +175,8 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
 
   // Deposit Modal state
   const [showDepositModal, setShowDepositModal] = useState(false);
+  // Withdrawal Modal state
+  const [showWithdrawalModal, setShowWithdrawalModal] = useState(false);
   // Transfer Modal state
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [depositForm, setDepositForm] = useState({
@@ -184,9 +186,16 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
     walletType: 'investment',
     paymentProof: null as File | null,
   });
+  const [withdrawalForm, setWithdrawalForm] = useState({
+    amount: '',
+    walletAddress: '',
+  });
   const [depositLoading, setDepositLoading] = useState(false);
+  const [withdrawalLoading, setWithdrawalLoading] = useState(false);
   const [depositError, setDepositError] = useState('');
   const [depositSuccess, setDepositSuccess] = useState('');
+  const [withdrawalError, setWithdrawalError] = useState('');
+  const [withdrawalSuccess, setWithdrawalSuccess] = useState('');
 
   const handleDepositChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, files } = e.target as HTMLInputElement;
@@ -194,6 +203,43 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
       setDepositForm(prev => ({ ...prev, paymentProof: files[0] }));
     } else {
       setDepositForm(prev => ({ ...prev, [name]: value }));
+    }
+  };
+
+  const handleWithdrawalChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setWithdrawalForm(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleWithdrawalSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setWithdrawalLoading(true);
+    setWithdrawalError('');
+    setWithdrawalSuccess('');
+    try {
+      if (!withdrawalForm.amount || isNaN(parseFloat(withdrawalForm.amount))) {
+        throw new Error('Please enter a valid amount');
+      }
+      const amount = parseFloat(withdrawalForm.amount);
+      if (amount <= 0) {
+        throw new Error('Amount must be greater than 0');
+      }
+      if (!withdrawalForm.walletAddress.trim()) {
+        throw new Error('Wallet address is required');
+      }
+      
+      const response = await createWithdrawalRequest({
+        amount: amount,
+        walletAddress: withdrawalForm.walletAddress.trim(),
+      });
+      setWithdrawalSuccess('Withdrawal request submitted successfully!');
+      setShowWithdrawalModal(false);
+      setWithdrawalForm({ amount: '', walletAddress: '' });
+      refreshWalletData();
+    } catch (err: any) {
+      setWithdrawalError(err.message || 'Failed to submit withdrawal request.');
+    } finally {
+      setWithdrawalLoading(false);
     }
   };
 
@@ -342,7 +388,7 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
 
       {/* Premium Quick Actions */}
       <div className="px-4 sm:px-6 mt-0 relative pb-8">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
           <div className="group bg-white/80 backdrop-blur-xl rounded-2xl p-5 shadow-xl border border-white/50 hover:shadow-2xl hover:bg-white/90 transition-all duration-300 hover:-translate-y-1">
             <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
               <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-lg">
@@ -360,6 +406,23 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
                </button>
              </div>
            </div>
+           <div className="group bg-white/80 backdrop-blur-xl rounded-2xl p-5 shadow-xl border border-white/50 hover:shadow-2xl hover:bg-white/90 transition-all duration-300 hover:-translate-y-1">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-lg">
+                <Minus className="w-6 h-6 text-white" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <span className="font-semibold text-gray-800 text-lg">Withdraw</span>
+                <p className="text-sm text-gray-600">Withdraw to your wallet</p>
+              </div>
+              <button
+                onClick={() => setShowWithdrawalModal(true)}
+                className="w-full sm:w-auto px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm font-medium"
+              >
+                Withdraw
+              </button>
+            </div>
+          </div>
            <div className="group bg-white/80 backdrop-blur-xl rounded-2xl p-5 shadow-xl border border-white/50 hover:shadow-2xl hover:bg-white/90 transition-all duration-300 hover:-translate-y-1">
             <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
               <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-lg">
@@ -922,6 +985,72 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Withdrawal Modal */}
+      {showWithdrawalModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xs sm:max-w-md p-4 sm:p-8 relative pb-24 overflow-y-auto max-h-[90vh]">
+            <button
+              className="absolute top-3 right-3 text-gray-400 hover:text-gray-700"
+              onClick={() => setShowWithdrawalModal(false)}
+            >
+              &times;
+            </button>
+            <h2 className="text-lg sm:text-xl font-bold mb-4">Withdraw Funds</h2>
+            {withdrawalError && <div className="mb-2 text-red-600 text-sm">{withdrawalError}</div>}
+            {withdrawalSuccess && <div className="mb-2 text-green-600 text-sm">{withdrawalSuccess}</div>}
+            <form onSubmit={handleWithdrawalSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Amount</label>
+                <input
+                  type="number"
+                  name="amount"
+                  value={withdrawalForm.amount}
+                  onChange={handleWithdrawalChange}
+                  className="w-full border rounded px-3 py-2 text-base"
+                  placeholder="Enter amount to withdraw"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Wallet Address</label>
+                <input
+                  type="text"
+                  name="walletAddress"
+                  value={withdrawalForm.walletAddress}
+                  onChange={handleWithdrawalChange}
+                  className="w-full border rounded px-3 py-2 text-base"
+                  placeholder="Enter your wallet address"
+                  required
+                />
+              </div>
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                <p className="text-sm text-yellow-800">
+                  <strong>Note:</strong> Please ensure your wallet address is correct. Withdrawals may take 24-48 hours to process.
+                </p>
+              </div>
+              <div className="flex flex-col gap-2 sm:flex-row sm:gap-4 justify-end mt-4 mb-2">
+                <button
+                  type="button"
+                  className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 w-full sm:w-auto"
+                  onClick={() => setShowWithdrawalModal(false)}
+                  disabled={withdrawalLoading}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700 w-full sm:w-auto"
+                  disabled={withdrawalLoading}
+                >
+                  {withdrawalLoading ? 'Submitting...' : 'Submit Withdrawal'}
+                </button>
+              </div>
+              <div className="mb-4" />
+            </form>
           </div>
         </div>
       )}

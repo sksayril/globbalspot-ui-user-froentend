@@ -12,7 +12,7 @@ import PurchaseModal from './components/PurchaseModal';
 import LoginPage from './components/LoginPage';
 import SignupPage from './components/SignupPage';
 import LevelsStatusPage from './components/LevelsStatusPage';
-import { getUserProfile, getAuthToken, getWallets, getUserReferrals, clearAuthData, setUnauthorizedHandler } from './services/api';
+import { getUserProfile, getAuthToken, getWallets, getUserReferrals, clearAuthData, setUnauthorizedHandler, getInvestmentPlans, InvestmentPlan } from './services/api';
 
 export interface Hotel {
   id: string;
@@ -151,6 +151,11 @@ function App() {
   const [referralCode, setReferralCode] = useState<string>('');
   const [isLoadingReferrals, setIsLoadingReferrals] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' | 'info' } | null>(null);
+  const [investmentPlans, setInvestmentPlans] = useState<InvestmentPlan[]>([]);
+  const [plansLoading, setPlansLoading] = useState(false);
+  const [plansError, setPlansError] = useState('');
+  // Placeholder for user investments
+  const [userInvestments, setUserInvestments] = useState<Investment[]>([]); // TODO: Fetch from API when available
 
   // Set up unauthorized handler
   useEffect(() => {
@@ -191,141 +196,21 @@ function App() {
     checkAuth();
   }, []);
 
-  const hotels: Hotel[] = [
-    {
-      id: 'e2',
-      name: 'Economy hotel: E2',
-      tier: 'E2',
-      price: 2000,
-      dailyIncome: 60,
-      contractPeriod: 15,
-      dailyRate: 3.0,
-      progress: 69,
-      image: 'https://images.pexels.com/photos/164595/pexels-photo-164595.jpeg?auto=compress&cs=tinysrgb&w=800',
-      description: 'Economy hotels provide the most basic accommodation services at low prices, targeting budget-conscious travelers.',
-      purchaseLimit: 1,
-      levelRequirement: 'E2',
-      totalProfit: 900,
-      principalIncome: 2900,
-      status: 'active'
-    },
-    {
-      id: 'e3',
-      name: 'Economy hotel: E3',
-      tier: 'E3',
-      price: 5000,
-      dailyIncome: 155,
-      contractPeriod: 30,
-      dailyRate: 3.1,
-      progress: 70,
-      image: 'https://images.pexels.com/photos/271624/pexels-photo-271624.jpeg?auto=compress&cs=tinysrgb&w=800',
-      description: 'Mid-tier economy hotels with enhanced amenities and better service quality.',
-      purchaseLimit: 1,
-      levelRequirement: 'E3',
-      totalProfit: 4650,
-      principalIncome: 9650,
-      status: 'active'
-    },
-    {
-      id: 'e4',
-      name: 'Economy hotel: E4',
-      tier: 'E4',
-      price: 10000,
-      dailyIncome: 320,
-      contractPeriod: 60,
-      dailyRate: 3.2,
-      progress: 65,
-      image: 'https://images.pexels.com/photos/1134176/pexels-photo-1134176.jpeg?auto=compress&cs=tinysrgb&w=800',
-      description: 'Premium economy hotels with superior facilities and prime locations.',
-      purchaseLimit: 1,
-      levelRequirement: 'E4',
-      totalProfit: 19200,
-      principalIncome: 29200,
-      status: 'active'
-    },
-    {
-      id: 'e5',
-      name: 'Economy hotel: E5',
-      tier: 'E5',
-      price: 20000,
-      dailyIncome: 660,
-      contractPeriod: 90,
-      dailyRate: 3.3,
-      progress: 55,
-      image: 'https://images.pexels.com/photos/1743231/pexels-photo-1743231.jpeg?auto=compress&cs=tinysrgb&w=800',
-      description: 'High-end economy hotels with luxury amenities and exceptional service.',
-      purchaseLimit: 1,
-      levelRequirement: 'E5',
-      totalProfit: 59400,
-      principalIncome: 79400,
-      status: 'active'
-    },
-    {
-      id: 'v2',
-      name: 'Economy hotel: V2',
-      tier: 'V2',
-      price: 50000,
-      dailyIncome: 1700,
-      contractPeriod: 120,
-      dailyRate: 3.4,
-      progress: 59,
-      image: 'https://images.pexels.com/photos/2017802/pexels-photo-2017802.jpeg?auto=compress&cs=tinysrgb&w=800',
-      description: 'Premium resort-style hotels with comprehensive facilities and services.',
-      purchaseLimit: 1,
-      levelRequirement: 'V2',
-      totalProfit: 204000,
-      principalIncome: 254000,
-      status: 'active'
-    },
-    {
-      id: 'v7',
-      name: 'V7 Manager Exclusive: V7',
-      tier: 'V7',
-      price: 1000000,
-      dailyIncome: 100000,
-      contractPeriod: 365,
-      dailyRate: 10.0,
-      progress: 36,
-      image: 'https://images.pexels.com/photos/2736388/pexels-photo-2736388.jpeg?auto=compress&cs=tinysrgb&w=800',
-      description: 'Exclusive luxury resort investment with premium returns and VIP management.',
-      purchaseLimit: 1,
-      levelRequirement: 'V7',
-      totalProfit: 36500000,
-      principalIncome: 37500000,
-      status: 'active'
-    }
-  ];
-
-  // Sample user investments
-  const userInvestments: Investment[] = [
-    {
-      id: 'inv1',
-      hotel: hotels[0],
-      purchaseDate: '2024-01-15',
-      currentProgress: 69,
-      totalEarned: 1380,
-      daysRemaining: 5,
-      status: 'active'
-    },
-    {
-      id: 'inv2',
-      hotel: hotels[1],
-      purchaseDate: '2024-01-10',
-      currentProgress: 70,
-      totalEarned: 3255,
-      daysRemaining: 9,
-      status: 'active'
-    },
-    {
-      id: 'inv3',
-      hotel: hotels[2],
-      purchaseDate: '2024-01-05',
-      currentProgress: 65,
-      totalEarned: 12480,
-      daysRemaining: 21,
-      status: 'active'
-    }
-  ];
+  useEffect(() => {
+    const fetchPlans = async () => {
+      setPlansLoading(true);
+      setPlansError('');
+      try {
+        const res = await getInvestmentPlans();
+        setInvestmentPlans(res.data);
+      } catch (err: any) {
+        setPlansError(err.message || 'Failed to fetch investment plans');
+      } finally {
+        setPlansLoading(false);
+      }
+    };
+    fetchPlans();
+  }, []);
 
   const fetchWallets = async () => {
     setIsLoadingWallets(true);
@@ -452,7 +337,7 @@ function App() {
       case 'home':
         return <HomePage userStats={profile} isLoading={isLoadingProfile || isLoadingWallets} investmentWalletBalance={wallets.investmentWallet.balance} normalWalletBalance={wallets.normalWallet.balance} />;
       case 'my-investments':
-        return <MyInvestmentsPage investments={userInvestments} onInvestmentSelect={handleHotelSelect} onWalletsUpdate={setWallets} />;
+        return <MyInvestmentsPage investments={userInvestments} onInvestmentSelect={handleHotelSelect} onWalletsUpdate={setWallets} plans={investmentPlans} plansLoading={plansLoading} plansError={plansError} />;
       case 'hotel-detail':
         return selectedHotel ? (
           <HotelDetail 
