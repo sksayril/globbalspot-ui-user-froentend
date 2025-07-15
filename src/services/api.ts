@@ -58,7 +58,7 @@ export interface SignupRequest {
   email: string;
   phone: string;
   password: string;
-  referralCode?: string;
+  referralCode: string;
 }
 
 export interface SignupResponse {
@@ -994,5 +994,246 @@ export const getMyInvestments = async (): Promise<MyInvestmentsResponse> => {
   if (!response.ok || !data.success) {
     throw new Error(data.message || 'Failed to fetch my investments');
   }
+  return data;
+};
+
+// Lucky Draw API interfaces and functions
+export interface LuckyDraw {
+  _id: string;
+  title: string;
+  description: string;
+  amount: number;
+  maxParticipants: number;
+  currentParticipants: number;
+  status: string;
+  startDate: string;
+  endDate: string;
+  drawDate: string;
+  userParticipation: {
+    isParticipant: boolean;
+    isWinner: boolean;
+    canJoin: boolean;
+    canClaim?: boolean;
+    joinReason?: string;
+    claimReason?: string;
+  };
+}
+
+export interface LuckyDrawDetails extends LuckyDraw {
+  participants: Array<{
+    userId: {
+      _id: string;
+      name: string;
+      email: string;
+      phone: string;
+    };
+    userName: string;
+    userEmail: string;
+    joinedAt: string;
+    isWinner: boolean;
+    hasClaimed: boolean;
+  }>;
+  winners: any[];
+}
+
+export interface ActiveLuckyDrawsResponse {
+  success: boolean;
+  data: {
+    luckyDraws: LuckyDraw[];
+    pagination: {
+      currentPage: number;
+      totalPages: number;
+      totalItems: number;
+      itemsPerPage: number;
+    };
+  };
+}
+
+export const getActiveLuckyDraws = async (page = 1, limit = 10): Promise<ActiveLuckyDrawsResponse> => {
+  const token = getAuthToken();
+  if (!token) throw new Error('No authentication token found');
+  
+  const { response, data } = await apiRequest(`/luckydraw/active?page=${page}&limit=${limit}`, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok || !data.success) {
+    throw new Error(data.message || 'Failed to fetch active lucky draws');
+  }
+
+  return data;
+};
+
+export const getLuckyDrawDetails = async (luckyDrawId: string): Promise<{ success: boolean; data: LuckyDrawDetails }> => {
+  const token = getAuthToken();
+  if (!token) throw new Error('No authentication token found');
+  
+  const { response, data } = await apiRequest(`/luckydraw/${luckyDrawId}`, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok || !data.success) {
+    throw new Error(data.message || 'Failed to fetch lucky draw details');
+  }
+
+  return data;
+};
+
+export const joinLuckyDraw = async (luckyDrawId: string): Promise<{ success: boolean; message: string; data: any }> => {
+  const token = getAuthToken();
+  if (!token) throw new Error('No authentication token found');
+  
+  const { response, data } = await apiRequest(`/luckydraw/${luckyDrawId}/join`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok || !data.success) {
+    throw new Error(data.message || 'Failed to join lucky draw');
+  }
+
+  return data;
+};
+
+export const claimLuckyDrawPrize = async (luckyDrawId: string): Promise<{ success: boolean; message: string; data: any }> => {
+  const token = getAuthToken();
+  if (!token) throw new Error('No authentication token found');
+  
+  const { response, data } = await apiRequest(`/luckydraw/${luckyDrawId}/claim`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok || !data.success) {
+    throw new Error(data.message || 'Failed to claim prize');
+  }
+
+  return data;
+};
+
+export interface LuckyDrawHistoryItem {
+  id: string;
+  title: string;
+  description: string;
+  amount: number;
+  status: string;
+  startDate: string;
+  endDate: string;
+  drawDate: string;
+  joinedAt: string;
+  isWinner: boolean;
+  prizeAmount?: number;
+  hasClaimed: boolean;
+  claimedAt?: string;
+  totalParticipants: number;
+  maxParticipants: number;
+}
+
+export interface LuckyDrawHistoryResponse {
+  success: boolean;
+  data: {
+    history: LuckyDrawHistoryItem[];
+    pagination: {
+      currentPage: number;
+      totalPages: number;
+      totalItems: number;
+      itemsPerPage: number;
+    };
+  };
+}
+
+export const getLuckyDrawHistory = async (page = 1, limit = 10): Promise<LuckyDrawHistoryResponse> => {
+  const token = getAuthToken();
+  if (!token) throw new Error('No authentication token found');
+  
+  const { response, data } = await apiRequest(`/luckydraw/my/history?page=${page}&limit=${limit}`, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok || !data.success) {
+    throw new Error(data.message || 'Failed to fetch lucky draw history');
+  }
+
+  return data;
+};
+
+export interface LuckyDrawStats {
+  totalParticipated: number;
+  totalWon: number;
+  totalPrizeAmount: number;
+  totalClaimed: number;
+  totalUnclaimed: number;
+  winRate: number;
+}
+
+export interface LuckyDrawStatsResponse {
+  success: boolean;
+  data: LuckyDrawStats;
+}
+
+export const getLuckyDrawStats = async (): Promise<LuckyDrawStatsResponse> => {
+  const token = getAuthToken();
+  if (!token) throw new Error('No authentication token found');
+  
+  const { response, data } = await apiRequest('/luckydraw/my/stats', {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok || !data.success) {
+    throw new Error(data.message || 'Failed to fetch lucky draw stats');
+  }
+
+  return data;
+};
+
+export interface UnclaimedPrize {
+  luckyDrawId: string;
+  title: string;
+  description: string;
+  prizeAmount: number;
+  drawDate: string;
+  canClaim: boolean;
+}
+
+export interface UnclaimedPrizesResponse {
+  success: boolean;
+  data: {
+    unclaimedPrizes: UnclaimedPrize[];
+    totalUnclaimed: number;
+    totalAmount: number;
+  };
+}
+
+export const getUnclaimedPrizes = async (): Promise<UnclaimedPrizesResponse> => {
+  const token = getAuthToken();
+  if (!token) throw new Error('No authentication token found');
+  
+  const { response, data } = await apiRequest('/luckydraw/my/unclaimed', {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok || !data.success) {
+    throw new Error(data.message || 'Failed to fetch unclaimed prizes');
+  }
+
   return data;
 };

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Copy, Share2, ChevronRight, Users, DollarSign, TrendingUp, X, Star, Crown, Shield, Award, Check } from 'lucide-react';
+import { Copy, Share2, ChevronRight, Users, DollarSign, TrendingUp, X, Star, Crown, Shield, Award, Check, MessageCircle, Facebook, Twitter, Globe } from 'lucide-react';
 import { CardSkeleton, GridSkeleton } from './SkeletonLoader';
 import { getTeamIncome, TeamIncomeResponse } from '../services/api';
 
@@ -91,6 +91,43 @@ const TeamsPage: React.FC<TeamsPageProps> = ({ userStats, referralCode }) => {
   const [selectedTeamLevel, setSelectedTeamLevel] = useState<string | null>(null);
   const [showTeamDetails, setShowTeamDetails] = useState(false);
 
+  // Social sharing functions
+  const generateReferralLink = (code: string) => {
+    const baseUrl = window.location.origin;
+    return `${baseUrl}/signup?refer=${code}`;
+  };
+
+  const shareToWhatsApp = (code: string) => {
+    const message = `Join me on our platform and earn together! Use my referral code: ${code}\n\nSign up here: ${generateReferralLink(code)}`;
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+  };
+
+  const shareToTelegram = (code: string) => {
+    const message = `Join me on our platform and earn together! Use my referral code: ${code}\n\nSign up here: ${generateReferralLink(code)}`;
+    const telegramUrl = `https://t.me/share/url?url=${encodeURIComponent(generateReferralLink(code))}&text=${encodeURIComponent(message)}`;
+    window.open(telegramUrl, '_blank');
+  };
+
+  const shareToFacebook = (code: string) => {
+    const message = `Join me on our platform and earn together! Use my referral code: ${code}`;
+    const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(generateReferralLink(code))}&quote=${encodeURIComponent(message)}`;
+    window.open(facebookUrl, '_blank');
+  };
+
+  const shareToTwitter = (code: string) => {
+    const message = `Join me on our platform and earn together! Use my referral code: ${code}\n\nSign up here: ${generateReferralLink(code)}`;
+    const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(message)}`;
+    window.open(twitterUrl, '_blank');
+  };
+
+  const shareViaLink = (code: string) => {
+    const referralLink = generateReferralLink(code);
+    navigator.clipboard.writeText(referralLink);
+    setCopiedInvite(true);
+    setTimeout(() => setCopiedInvite(false), 2000);
+  };
+
   const copyToClipboard = (text: string, type: 'uid' | 'invite') => {
     navigator.clipboard.writeText(text);
     if (type === 'uid') {
@@ -168,7 +205,7 @@ const TeamsPage: React.FC<TeamsPageProps> = ({ userStats, referralCode }) => {
             </div>
             
             <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 rounded-xl p-4 sm:p-6 border border-emerald-200">
-              <div className="flex flex-col sm:flex-row items-center justify-between space-y-3 sm:space-y-0">
+              <div className="flex flex-col sm:flex-row items-center justify-between space-y-3 sm:space-y-0 mb-4">
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 bg-emerald-500 rounded-lg flex items-center justify-center">
                     <Star className="w-5 h-5 text-white" />
@@ -194,6 +231,50 @@ const TeamsPage: React.FC<TeamsPageProps> = ({ userStats, referralCode }) => {
                     </>
                   )}
                 </button>
+              </div>
+              
+              {/* Social Sharing Buttons */}
+              <div className="border-t border-emerald-200 pt-4">
+                <div className="text-center mb-3">
+                  <span className="text-sm font-medium text-emerald-700">Share your referral link:</span>
+                </div>
+                <div className="flex flex-wrap justify-center gap-2">
+                  <button
+                    onClick={() => shareToWhatsApp(referralCode || userStats.inviteCode || '')}
+                    className="flex items-center space-x-2 px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl text-xs font-medium"
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                    <span>WhatsApp</span>
+                  </button>
+                  <button
+                    onClick={() => shareToTelegram(referralCode || userStats.inviteCode || '')}
+                    className="flex items-center space-x-2 px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl text-xs font-medium"
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                    <span>Telegram</span>
+                  </button>
+                  <button
+                    onClick={() => shareToFacebook(referralCode || userStats.inviteCode || '')}
+                    className="flex items-center space-x-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl text-xs font-medium"
+                  >
+                    <Facebook className="w-4 h-4" />
+                    <span>Facebook</span>
+                  </button>
+                  <button
+                    onClick={() => shareToTwitter(referralCode || userStats.inviteCode || '')}
+                    className="flex items-center space-x-2 px-3 py-2 bg-sky-500 hover:bg-sky-600 text-white rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl text-xs font-medium"
+                  >
+                    <Twitter className="w-4 h-4" />
+                    <span>Twitter</span>
+                  </button>
+                  <button
+                    onClick={() => shareViaLink(referralCode || userStats.inviteCode || '')}
+                    className="flex items-center space-x-2 px-3 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl text-xs font-medium"
+                  >
+                    <Globe className="w-4 h-4" />
+                    <span>Copy Link</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -399,7 +480,7 @@ const TeamsPage: React.FC<TeamsPageProps> = ({ userStats, referralCode }) => {
       )}
       {copiedInvite && (
         <div className="fixed bottom-24 left-1/2 transform -translate-x-1/2 bg-black text-white px-4 py-2 rounded-lg z-50">
-          Invite code copied to clipboard!
+          Referral link copied to clipboard!
         </div>
       )}
     </div>

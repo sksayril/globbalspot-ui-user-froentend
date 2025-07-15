@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Eye, EyeOff, User, Mail, Phone, Lock, ArrowLeft, Gift, HelpCircle } from 'lucide-react';
 import { signupUser, storeAuthData, SignupRequest } from '../services/api';
 
@@ -25,6 +25,18 @@ const SignupPage: React.FC<SignupPageProps> = ({ onSignup, onSwitchToLogin, onBa
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState<any>({});
   const [isLoading, setIsLoading] = useState(false);
+
+  // Handle URL parameters for referral code
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const referralCode = urlParams.get('refer');
+    if (referralCode) {
+      setFormData(prev => ({
+        ...prev,
+        referralCode: referralCode
+      }));
+    }
+  }, []);
 
   const securityQuestions = [
     'What was the name of your first pet?',
@@ -81,6 +93,12 @@ const SignupPage: React.FC<SignupPageProps> = ({ onSignup, onSwitchToLogin, onBa
       newErrors.password = 'Password must be at least 8 characters';
     } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.password)) {
       newErrors.password = 'Password must contain uppercase, lowercase, and number';
+    }
+
+    if (!formData.referralCode.trim()) {
+      newErrors.referralCode = 'Referral code is required';
+    } else if (formData.referralCode.trim().length < 3) {
+      newErrors.referralCode = 'Referral code must be at least 3 characters';
     }
 
     setErrors(newErrors);
@@ -150,7 +168,7 @@ const SignupPage: React.FC<SignupPageProps> = ({ onSignup, onSwitchToLogin, onBa
         email: formData.email,
         phone: formData.mobile,
         password: formData.password,
-        referralCode: formData.referralCode || undefined
+        referralCode: formData.referralCode
       };
 
       // Make API call using the service
@@ -299,7 +317,7 @@ const SignupPage: React.FC<SignupPageProps> = ({ onSignup, onSwitchToLogin, onBa
       {/* Referral Code */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          Referral Code (Optional)
+          Referral Code *
         </label>
         <div className="relative">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -310,10 +328,15 @@ const SignupPage: React.FC<SignupPageProps> = ({ onSignup, onSwitchToLogin, onBa
             name="referralCode"
             value={formData.referralCode}
             onChange={handleInputChange}
-            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors"
+            className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors ${
+              errors.referralCode ? 'border-red-500' : 'border-gray-300'
+            }`}
             placeholder="Enter referral code"
           />
         </div>
+        {errors.referralCode && (
+          <p className="mt-1 text-sm text-red-600">{errors.referralCode}</p>
+        )}
         <p className="mt-1 text-sm text-gray-500">
           Enter a referral code to get bonus rewards
         </p>

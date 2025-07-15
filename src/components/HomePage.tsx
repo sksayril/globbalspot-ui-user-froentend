@@ -2,8 +2,24 @@ import React, { useState, useEffect } from 'react';
 // @ts-ignore
 import Swal from 'sweetalert2';
 import 'sweetalert2/dist/sweetalert2.min.css';
-import { TrendingUp, Calendar, Target, Gift, DollarSign, Activity, Plus, Minus, Zap, Award, BarChart3, Clock, Wallet, CreditCard, Star, Crown, Shield, Copy } from 'lucide-react';
-import { updateUserProfile, createDeposit, claimDailyIncome, getDailyIncomeStatus, getContentList, ContentItem, createWithdrawalRequest } from '../services/api';
+import { TrendingUp, Calendar, Target, Gift, DollarSign, Activity, Plus, Minus, Zap, Award, BarChart3, Clock, Wallet, CreditCard, Star, Crown, Shield, Copy, Trophy, Users, GiftIcon, Share2, MessageCircle, Facebook, Twitter } from 'lucide-react';
+import { 
+  updateUserProfile, 
+  createDeposit, 
+  claimDailyIncome, 
+  getDailyIncomeStatus, 
+  getContentList, 
+  ContentItem, 
+  createWithdrawalRequest,
+  getActiveLuckyDraws,
+  joinLuckyDraw,
+  claimLuckyDrawPrize,
+  getLuckyDrawStats,
+  getUnclaimedPrizes,
+  LuckyDraw,
+  LuckyDrawStats,
+  UnclaimedPrize
+} from '../services/api';
 import { CardSkeleton, StatsCardSkeleton, GridSkeleton } from './SkeletonLoader';
 
 interface HomePageProps {
@@ -46,6 +62,46 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
     fetchCryptoWalletData();
   }, []);
 
+  // Fetch Lucky Draw data on component mount
+  useEffect(() => {
+    const fetchLuckyDrawData = async () => {
+      try {
+        // Fetch active lucky draws
+        setLuckyDrawLoading(true);
+        const activeDrawsResponse = await getActiveLuckyDraws();
+        setActiveLuckyDraws(activeDrawsResponse.data.luckyDraws);
+      } catch (error) {
+        console.error('Error fetching active lucky draws:', error);
+      } finally {
+        setLuckyDrawLoading(false);
+      }
+
+      try {
+        // Fetch lucky draw stats
+        setLuckyDrawStatsLoading(true);
+        const statsResponse = await getLuckyDrawStats();
+        setLuckyDrawStats(statsResponse.data);
+      } catch (error) {
+        console.error('Error fetching lucky draw stats:', error);
+      } finally {
+        setLuckyDrawStatsLoading(false);
+      }
+
+      try {
+        // Fetch unclaimed prizes
+        setUnclaimedPrizesLoading(true);
+        const unclaimedResponse = await getUnclaimedPrizes();
+        setUnclaimedPrizes(unclaimedResponse.data.unclaimedPrizes);
+      } catch (error) {
+        console.error('Error fetching unclaimed prizes:', error);
+      } finally {
+        setUnclaimedPrizesLoading(false);
+      }
+    };
+
+    fetchLuckyDrawData();
+  }, []);
+
   // Copy wallet ID to clipboard
   const copyWalletId = async (walletId: string) => {
     try {
@@ -61,6 +117,18 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
   const [claimType, setClaimType] = useState<'success' | 'error'>('success');
   const [claimLoading, setClaimLoading] = useState(false);
 
+  // Daily Sign-in Modal state
+  const [showDailySignInModal, setShowDailySignInModal] = useState(false);
+  const [dailySignInLoading, setDailySignInLoading] = useState(false);
+
+  // Lucky Draw state
+  const [activeLuckyDraws, setActiveLuckyDraws] = useState<LuckyDraw[]>([]);
+  const [luckyDrawStats, setLuckyDrawStats] = useState<LuckyDrawStats | null>(null);
+  const [unclaimedPrizes, setUnclaimedPrizes] = useState<UnclaimedPrize[]>([]);
+  const [luckyDrawLoading, setLuckyDrawLoading] = useState(false);
+  const [luckyDrawStatsLoading, setLuckyDrawStatsLoading] = useState(false);
+  const [unclaimedPrizesLoading, setUnclaimedPrizesLoading] = useState(false);
+
   // Refresh wallet data
   const refreshWalletData = () => {
     if (typeof onWalletsUpdate === 'function') {
@@ -74,8 +142,14 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
     }
   };
 
-  const handleDailySignIn = async () => {
-    setClaimLoading(true);
+  // Replace handleDailySignIn to open modal
+  const handleDailySignIn = () => {
+    setShowDailySignInModal(true);
+  };
+
+  // Claim daily income
+  const handleDailyIncomeClaim = async () => {
+    setDailySignInLoading(true);
     try {
       const res = await fetch('http://localhost:3100/users/today-my-income', {
         method: 'POST',
@@ -88,7 +162,7 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
       const claimSuccess = data.success;
       await Swal.fire({
         icon: claimSuccess ? undefined : 'error',
-        title: claimSuccess ? '�� Daily Income Claimed!' : 'Oops!',
+        title: claimSuccess ? '🎉 Daily Income Claimed!' : 'Oops!',
         text: claimSuccess
           ? (data.message || 'You have successfully claimed your daily income!')
           : (data.message || 'Failed to claim daily income.'),
@@ -108,6 +182,7 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
           popup: 'animate__animated animate__fadeOutUp'
         }
       });
+      setShowDailySignInModal(false);
       refreshWalletData();
     } catch (err) {
       await Swal.fire({
@@ -117,8 +192,148 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
         confirmButtonColor: '#ef4444'
       });
     } finally {
-      setClaimLoading(false);
+      setDailySignInLoading(false);
     }
+  };
+
+  // Claim level income
+  const handleLevelIncomeClaim = async () => {
+    setDailySignInLoading(true);
+    try {
+      const res = await fetch('http://localhost:3100/users/today-my-income', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      const data = await res.json();
+      const claimSuccess = data.success;
+      await Swal.fire({
+        icon: claimSuccess ? undefined : 'error',
+        title: claimSuccess ? '🎉 Level Income Claimed!' : 'Oops!',
+        text: claimSuccess
+          ? (data.message || 'You have successfully claimed your level income!')
+          : (data.message || 'Failed to claim level income.'),
+        background: 'linear-gradient(135deg, #f0f4ff 0%, #e0ffe7 100%)',
+        color: '#222',
+        confirmButtonColor: claimSuccess ? '#22c55e' : '#ef4444',
+        confirmButtonText: claimSuccess ? 'Awesome!' : 'OK',
+        customClass: {
+          popup: 'swal2-border-radius',
+          title: 'swal2-title-bold',
+          confirmButton: 'swal2-confirm-custom'
+        },
+        showClass: {
+          popup: 'animate__animated animate__fadeInDown'
+        },
+        hideClass: {
+          popup: 'animate__animated animate__fadeOutUp'
+        }
+      });
+      setShowDailySignInModal(false);
+      refreshWalletData();
+    } catch (err) {
+      await Swal.fire({
+        icon: 'error',
+        title: 'Network Error',
+        text: 'Please try again.',
+        confirmButtonColor: '#ef4444'
+      });
+    } finally {
+      setDailySignInLoading(false);
+    }
+  };
+
+  // Lucky Draw handlers
+  const handleJoinLuckyDraw = async (luckyDrawId: string) => {
+    try {
+      const response = await joinLuckyDraw(luckyDrawId);
+      await Swal.fire({
+        icon: 'success',
+        title: '🎉 Joined Successfully!',
+        text: response.message || 'You have successfully joined the lucky draw!',
+        background: 'linear-gradient(135deg, #f0f4ff 0%, #e0ffe7 100%)',
+        color: '#222',
+        confirmButtonColor: '#22c55e',
+        confirmButtonText: 'Awesome!',
+        customClass: {
+          popup: 'swal2-border-radius',
+          title: 'swal2-title-bold',
+          confirmButton: 'swal2-confirm-custom'
+        },
+        showClass: {
+          popup: 'animate__animated animate__fadeInDown'
+        },
+        hideClass: {
+          popup: 'animate__animated animate__fadeOutUp'
+        }
+      });
+      // Refresh lucky draw data
+      const activeDrawsResponse = await getActiveLuckyDraws();
+      setActiveLuckyDraws(activeDrawsResponse.data.luckyDraws);
+    } catch (error: any) {
+      await Swal.fire({
+        icon: 'error',
+        title: 'Oops!',
+        text: error.message || 'Failed to join lucky draw. Please try again.',
+        confirmButtonColor: '#ef4444'
+      });
+    }
+  };
+
+  const handleClaimPrize = async (luckyDrawId: string) => {
+    try {
+      const response = await claimLuckyDrawPrize(luckyDrawId);
+      await Swal.fire({
+        icon: 'success',
+        title: '🎉 Prize Claimed!',
+        text: response.message || 'You have successfully claimed your prize!',
+        background: 'linear-gradient(135deg, #f0f4ff 0%, #e0ffe7 100%)',
+        color: '#222',
+        confirmButtonColor: '#22c55e',
+        confirmButtonText: 'Awesome!',
+        customClass: {
+          popup: 'swal2-border-radius',
+          title: 'swal2-title-bold',
+          confirmButton: 'swal2-confirm-custom'
+        },
+        showClass: {
+          popup: 'animate__animated animate__fadeInDown'
+        },
+        hideClass: {
+          popup: 'animate__animated animate__fadeOutUp'
+        }
+      });
+      // Refresh data
+      refreshWalletData();
+      const unclaimedResponse = await getUnclaimedPrizes();
+      setUnclaimedPrizes(unclaimedResponse.data.unclaimedPrizes);
+    } catch (error: any) {
+      await Swal.fire({
+        icon: 'error',
+        title: 'Oops!',
+        text: error.message || 'Failed to claim prize. Please try again.',
+        confirmButtonColor: '#ef4444'
+      });
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(amount);
   };
 
   // Handle level sign-in
@@ -505,7 +720,7 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
         <div className="space-y-4 sm:space-y-6">
           {/* Daily Sign-in Card */}
           <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-6 shadow-xl border border-white/50">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center mb-4">
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-xl flex items-center justify-center">
                   <Calendar className="w-5 h-5 text-white" />
@@ -515,43 +730,70 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
                   <p className="text-sm text-gray-600">Claim your daily rewards</p>
                 </div>
               </div>
-              <button
-                onClick={handleDailySignIn}
-                disabled={claimLoading}
-                className="px-3 sm:px-4 py-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-white rounded-lg hover:from-yellow-500 hover:to-orange-600 transition-all duration-300 font-medium shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-              >
-                {claimLoading ? (
-                  <div className="flex items-center space-x-2">
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    <span>Claiming...</span>
-                  </div>
-                ) : (
-                  'Claim Daily'
-                )}
-              </button>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Daily Bonus Card */}
               <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 rounded-xl p-4 border border-emerald-200">
-                <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center">
-                    <Gift className="w-4 h-4 text-white" />
-                  </div>
-                  <div>
-                    <div className="font-semibold text-emerald-800">Daily Bonus</div>
-                    <div className="text-sm text-emerald-600">$10 - $50</div>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center">
+                      <Gift className="w-4 h-4 text-white" />
+                    </div>
+                    <div>
+                      <div className="font-semibold text-emerald-800">Daily Bonus</div>
+                      <div className="text-sm text-emerald-600">$10 - $50</div>
+                    </div>
                   </div>
                 </div>
+                <div className="text-xs text-emerald-700 mb-3">
+                  Claim your daily income reward. Available once per day.
+                </div>
+                <button
+                  onClick={handleDailyIncomeClaim}
+                  disabled={dailySignInLoading}
+                  className="w-full px-3 py-2 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-lg hover:from-emerald-600 hover:to-emerald-700 transition-all duration-300 font-medium shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                >
+                  {dailySignInLoading ? (
+                    <div className="flex items-center justify-center space-x-2">
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span>Claiming...</span>
+                    </div>
+                  ) : (
+                    'Claim Daily'
+                  )}
+                </button>
               </div>
+              
+              {/* Level Bonus Card */}
               <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl p-4 border border-blue-200">
-                <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
-                    <Target className="w-4 h-4 text-white" />
-                  </div>
-                  <div>
-                    <div className="font-semibold text-blue-800">Level Bonus</div>
-                    <div className="text-sm text-blue-600">Extra rewards</div>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
+                      <Target className="w-4 h-4 text-white" />
+                    </div>
+                    <div>
+                      <div className="font-semibold text-blue-800">Level Bonus</div>
+                      <div className="text-sm text-blue-600">Level {userStats?.referralLevel || 0} rewards</div>
+                    </div>
                   </div>
                 </div>
+                <div className="text-xs text-blue-700 mb-3">
+                  Claim your level-based income reward. Based on your current level.
+                </div>
+                <button
+                  onClick={handleLevelIncomeClaim}
+                  disabled={dailySignInLoading}
+                  className="w-full px-3 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-300 font-medium shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                >
+                  {dailySignInLoading ? (
+                    <div className="flex items-center justify-center space-x-2">
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span>Claiming...</span>
+                    </div>
+                  ) : (
+                    'Claim Level'
+                  )}
+                </button>
               </div>
             </div>
           </div>
@@ -606,6 +848,150 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* Lucky Draw Section */}
+          <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-6 shadow-xl border border-white/50">
+            <div className="flex items-center mb-4">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-xl flex items-center justify-center">
+                  <Trophy className="w-5 h-5 text-white" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="font-semibold text-gray-800 text-lg">Lucky Draw</h3>
+                  <p className="text-sm text-gray-600">Join draws and win prizes</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Lucky Draw Stats */}
+            {luckyDrawStats && (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+                <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-xl p-3 border border-green-200">
+                  <div className="text-center">
+                    <div className="text-lg font-bold text-green-600">{luckyDrawStats.totalParticipated}</div>
+                    <div className="text-xs text-green-600">Participated</div>
+                  </div>
+                </div>
+                <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl p-3 border border-blue-200">
+                  <div className="text-center">
+                    <div className="text-lg font-bold text-blue-600">{luckyDrawStats.totalWon}</div>
+                    <div className="text-xs text-blue-600">Won</div>
+                  </div>
+                </div>
+                <div className="bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl p-3 border border-purple-200">
+                  <div className="text-center">
+                    <div className="text-lg font-bold text-purple-600">{formatCurrency(luckyDrawStats.totalPrizeAmount)}</div>
+                    <div className="text-xs text-purple-600">Total Won</div>
+                  </div>
+                </div>
+                <div className="bg-gradient-to-r from-orange-50 to-orange-100 rounded-xl p-3 border border-orange-200">
+                  <div className="text-center">
+                    <div className="text-lg font-bold text-orange-600">{luckyDrawStats.winRate}%</div>
+                    <div className="text-xs text-orange-600">Win Rate</div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Unclaimed Prizes */}
+            {unclaimedPrizes.length > 0 && (
+              <div className="mb-6">
+                <h4 className="font-semibold text-gray-800 mb-3 flex items-center">
+                  <GiftIcon className="w-4 h-4 mr-2 text-orange-500" />
+                  Unclaimed Prizes ({unclaimedPrizes.length})
+                </h4>
+                <div className="space-y-3">
+                  {unclaimedPrizes.map((prize) => (
+                    <div key={prize.luckyDrawId} className="bg-gradient-to-r from-orange-50 to-orange-100 rounded-xl p-4 border border-orange-200">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="font-semibold text-orange-800">{prize.title}</div>
+                          <div className="text-sm text-orange-600">{prize.description}</div>
+                          <div className="text-xs text-orange-500">Draw Date: {formatDate(prize.drawDate)}</div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-lg font-bold text-orange-600">{formatCurrency(prize.prizeAmount)}</div>
+                          <button
+                            onClick={() => handleClaimPrize(prize.luckyDrawId)}
+                            disabled={!prize.canClaim}
+                            className="mt-2 px-3 py-1 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all duration-300 font-medium shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed text-xs"
+                          >
+                            {prize.canClaim ? 'Claim Prize' : 'Cannot Claim'}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Active Lucky Draws */}
+            <div>
+              <h4 className="font-semibold text-gray-800 mb-3 flex items-center">
+                <Users className="w-4 h-4 mr-2 text-blue-500" />
+                Active Lucky Draws ({activeLuckyDraws.length})
+              </h4>
+              {luckyDrawLoading ? (
+                <div className="space-y-3">
+                  {[1, 2].map((i) => (
+                    <div key={i} className="bg-gray-100 rounded-xl p-4 animate-pulse">
+                      <div className="h-4 bg-gray-200 rounded mb-2"></div>
+                      <div className="h-3 bg-gray-200 rounded mb-1"></div>
+                      <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+                    </div>
+                  ))}
+                </div>
+              ) : activeLuckyDraws.length > 0 ? (
+                <div className="space-y-3">
+                  {activeLuckyDraws.map((luckyDraw) => (
+                    <div key={luckyDraw._id} className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl p-4 border border-blue-200">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex-1">
+                          <div className="font-semibold text-blue-800">{luckyDraw.title}</div>
+                          <div className="text-sm text-blue-600">{luckyDraw.description}</div>
+                          <div className="text-xs text-blue-500">
+                            Ends: {formatDate(luckyDraw.endDate)} • Draw: {formatDate(luckyDraw.drawDate)}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-lg font-bold text-blue-600">{formatCurrency(luckyDraw.amount)}</div>
+                          <div className="text-xs text-blue-500">
+                            {luckyDraw.currentParticipants}/{luckyDraw.maxParticipants} participants
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="text-xs text-blue-600">
+                          {luckyDraw.userParticipation.isParticipant ? (
+                            <span className="text-green-600">✓ Already Joined</span>
+                          ) : luckyDraw.userParticipation.canJoin ? (
+                            <span className="text-blue-600">Available to join</span>
+                          ) : (
+                            <span className="text-red-600">{luckyDraw.userParticipation.joinReason}</span>
+                          )}
+                        </div>
+                        {!luckyDraw.userParticipation.isParticipant && luckyDraw.userParticipation.canJoin && (
+                          <button
+                            onClick={() => handleJoinLuckyDraw(luckyDraw._id)}
+                            className="px-3 py-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-300 font-medium shadow-lg hover:shadow-xl text-xs"
+                          >
+                            Join Draw
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-6 text-gray-500">
+                  <Trophy className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+                  <p>No active lucky draws available</p>
+                  <p className="text-sm">Check back later for new opportunities!</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -724,6 +1110,60 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Daily Sign-in Modal */}
+      {showDailySignInModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md relative">
+            <button
+              className="absolute top-3 right-3 text-gray-400 hover:text-gray-700"
+              onClick={() => setShowDailySignInModal(false)}
+              disabled={dailySignInLoading}
+            >
+              &times;
+            </button>
+            <h2 className="text-xl font-bold mb-4 text-center">Claim Your Rewards</h2>
+            <div className="space-y-6">
+              <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 rounded-xl p-4 border border-emerald-200 flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center">
+                    <Gift className="w-4 h-4 text-white" />
+                  </div>
+                  <div>
+                    <div className="font-semibold text-emerald-800">Daily Bonus</div>
+                    <div className="text-sm text-emerald-600">$10 - $50</div>
+                  </div>
+                </div>
+                <button
+                  className="px-4 py-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-white rounded-lg font-medium shadow hover:from-yellow-500 hover:to-orange-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={handleDailyIncomeClaim}
+                  disabled={dailySignInLoading}
+                >
+                  {dailySignInLoading ? 'Claiming...' : 'Claim Daily'}
+                </button>
+              </div>
+              <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl p-4 border border-blue-200 flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
+                    <Target className="w-4 h-4 text-white" />
+                  </div>
+                  <div>
+                    <div className="font-semibold text-blue-800">Level Bonus</div>
+                    <div className="text-sm text-blue-600">Extra rewards</div>
+                  </div>
+                </div>
+                <button
+                  className="px-4 py-2 bg-gradient-to-r from-blue-400 to-purple-500 text-white rounded-lg font-medium shadow hover:from-blue-500 hover:to-purple-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={handleLevelIncomeClaim}
+                  disabled={dailySignInLoading}
+                >
+                  {dailySignInLoading ? 'Claiming...' : 'Claim Level'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
