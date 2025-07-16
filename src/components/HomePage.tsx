@@ -584,78 +584,76 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-      {/* Premium Header with Enhanced Glassmorphism */}
+      {/* Premium Header with Original Image */}
       <div className="relative">
-        <div className="h-72 bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700 relative overflow-hidden">
+        <div className="h-72 relative overflow-hidden">
           <img 
             src="https://images.pexels.com/photos/261102/pexels-photo-261102.jpeg?auto=compress&cs=tinysrgb&w=1200" 
             alt="Resort" 
-            className="w-full h-full object-cover opacity-20"
+            className="w-full h-full object-cover"
           />
-          {/* Enhanced Background Effects */}
-          <div className="absolute inset-0 bg-gradient-to-t from-indigo-900/60 via-purple-800/40 to-transparent"></div>
-          <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-white/10 to-transparent rounded-full blur-3xl"></div>
-          <div className="absolute bottom-0 left-0 w-80 h-80 bg-gradient-to-tr from-purple-400/20 to-transparent rounded-full blur-2xl"></div>
-          
-          
+          {/* Subtle overlay for better text readability */}
+          <div className="absolute inset-0 bg-black/20"></div>
         </div>
       </div>
 
-      {/* Premium Quick Actions */}
-      <div className="px-4 sm:px-6 mt-0 relative pb-8">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-          <div className="group bg-white/80 backdrop-blur-xl rounded-2xl p-5 shadow-xl border border-white/50 hover:shadow-2xl hover:bg-white/90 transition-all duration-300 hover:-translate-y-1">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-lg">
-                <Plus className="w-6 h-6 text-white" />
+              {/* Premium Quick Actions */}
+        <div className="px-4 sm:px-6 mt-0 relative pb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+            <div className="group bg-white/90 backdrop-blur-xl rounded-xl p-4 shadow-lg border border-white/60 hover:shadow-xl hover:bg-white/95 transition-all duration-300 hover:-translate-y-1">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-md">
+                  <Plus className="w-5 h-5 text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <span className="font-bold text-gray-800 text-base">Deposit</span>
+                  <p className="text-xs text-gray-600">Add funds instantly</p>
+                </div>
+                <button
+                  className="px-3 py-1.5 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-lg hover:from-emerald-600 hover:to-emerald-700 transition-all duration-300 text-xs font-semibold shadow-md hover:shadow-lg"
+                  onClick={() => setShowDepositModal(true)}
+                >
+                  Deposit
+                </button>
               </div>
-              <div className="flex-1 min-w-0">
-                <span className="font-semibold text-gray-800 text-lg">Deposit</span>
-                <p className="text-sm text-gray-600">Add funds instantly</p>
-               </div>
-               <button
-                className="w-full sm:w-auto px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm font-medium"
-                onClick={() => setShowDepositModal(true)}
-               >
-                 Deposit
-               </button>
-             </div>
-           </div>
-           <div className="group bg-white/80 backdrop-blur-xl rounded-2xl p-5 shadow-xl border border-white/50 hover:shadow-2xl hover:bg-white/90 transition-all duration-300 hover:-translate-y-1">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-lg">
-                <Minus className="w-6 h-6 text-white" />
+            </div>
+            <div className="group bg-white/90 backdrop-blur-xl rounded-xl p-4 shadow-lg border border-white/60 hover:shadow-xl hover:bg-white/95 transition-all duration-300 hover:-translate-y-1">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-red-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-md">
+                  <Minus className="w-5 h-5 text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <span className="font-bold text-gray-800 text-base">Withdraw</span>
+                  <p className="text-xs text-gray-600">Withdraw to your wallet</p>
+                </div>
+                <button
+                  onClick={() => setShowWithdrawalModal(true)}
+                  className="px-3 py-1.5 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-300 text-xs font-semibold shadow-md hover:shadow-lg"
+                >
+                  Withdraw
+                </button>
               </div>
-              <div className="flex-1 min-w-0">
-                <span className="font-semibold text-gray-800 text-lg">Withdraw</span>
-                <p className="text-sm text-gray-600">Withdraw to your wallet</p>
+            </div>
+            <div className="group bg-white/90 backdrop-blur-xl rounded-xl p-4 shadow-lg border border-white/60 hover:shadow-xl hover:bg-white/95 transition-all duration-300 hover:-translate-y-1">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-md">
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                  </svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <span className="font-bold text-gray-800 text-base">Transfer</span>
+                  <p className="text-xs text-gray-600">Move funds between wallets</p>
+                </div>
+                <button
+                  onClick={() => setShowTransferSection(true)}
+                  className="px-3 py-1.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-300 text-xs font-semibold shadow-md hover:shadow-lg"
+                >
+                  Transfer
+                </button>
               </div>
-              <button
-                onClick={() => setShowWithdrawalModal(true)}
-                className="w-full sm:w-auto px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm font-medium"
-              >
-                Withdraw
-              </button>
             </div>
           </div>
-           <div className="group bg-white/80 backdrop-blur-xl rounded-2xl p-5 shadow-xl border border-white/50 hover:shadow-2xl hover:bg-white/90 transition-all duration-300 hover:-translate-y-1">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-lg">
-                <Minus className="w-6 h-6 text-white" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <span className="font-semibold text-gray-800 text-lg">Transfer</span>
-                <p className="text-sm text-gray-600">Move funds between wallets</p>
-              </div>
-              <button
-                onClick={() => setShowTransferSection(true)}
-                className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium"
-              >
-                Transfer
-              </button>
-            </div>
-          </div>
-        </div>
 
         {/* Premium Stats Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-8">
@@ -798,58 +796,7 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
             </div>
           </div>
 
-          {/* Daily Income Status Card */}
-          <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-6 shadow-xl border border-white/50">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-purple-400 to-purple-600 rounded-xl flex items-center justify-center">
-                  <DollarSign className="w-5 h-5 text-white" />
-                </div>
-                <div className="min-w-0">
-                  <h3 className="font-semibold text-gray-800 text-lg">Daily Income Status</h3>
-                  <p className="text-sm text-gray-600">Check your earning status</p>
-                </div>
-              </div>
-              <button
-                onClick={handleStatusCheck}
-                disabled={statusLoading}
-                className="px-3 sm:px-4 py-2 bg-gradient-to-r from-purple-400 to-purple-600 text-white rounded-lg hover:from-purple-500 hover:to-purple-700 transition-all duration-300 font-medium shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-              >
-                {statusLoading ? (
-                  <div className="flex items-center space-x-2">
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    <span>Checking...</span>
-                  </div>
-                ) : (
-                  'Check Status'
-                )}
-              </button>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl p-4 border border-purple-200">
-                <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center">
-                    <Activity className="w-4 h-4 text-white" />
-                  </div>
-                  <div>
-                    <div className="font-semibold text-purple-800">Today's Earnings</div>
-                    <div className="text-sm text-purple-600">${userStats?.dailyIncome?.todayEarned || 0}</div>
-                  </div>
-                </div>
-              </div>
-              <div className="bg-gradient-to-r from-indigo-50 to-indigo-100 rounded-xl p-4 border border-indigo-200">
-                <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-indigo-500 rounded-lg flex items-center justify-center">
-                    <Zap className="w-4 h-4 text-white" />
-                  </div>
-                  <div>
-                    <div className="font-semibold text-indigo-800">Level Sign-in</div>
-                    <div className="text-sm text-indigo-600">Level {userStats?.referralLevel || 0} bonus</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+
 
           {/* Lucky Draw Section */}
           <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-6 shadow-xl border border-white/50">

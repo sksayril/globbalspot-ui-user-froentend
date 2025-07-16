@@ -193,31 +193,31 @@ const TeamsPage: React.FC<TeamsPageProps> = ({ userStats, referralCode }) => {
       <div className="px-4 sm:px-6 py-6 sm:py-8">
         <div className="max-w-4xl mx-auto">
           {/* Referral Code Section */}
-          <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-6 sm:p-8 shadow-xl border border-white/50 mb-8">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4 mb-6">
-              <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg">
-                <Copy className="w-6 h-6 text-white" />
+          <div className="bg-white/90 backdrop-blur-xl rounded-2xl p-6 shadow-xl border border-white/60 mb-6">
+            <div className="flex items-center space-x-3 mb-4">
+              <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-lg flex items-center justify-center shadow-md">
+                <Copy className="w-5 h-5 text-white" />
               </div>
-              <div className="text-center sm:text-left">
-                <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2">Your Referral Code</h2>
-                <p className="text-gray-600">Share this code with friends to earn rewards</p>
+              <div>
+                <h2 className="text-lg font-bold text-gray-800">Your Referral Code</h2>
+                <p className="text-sm text-gray-600">Share this code with friends to earn rewards</p>
               </div>
             </div>
             
-            <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 rounded-xl p-4 sm:p-6 border border-emerald-200">
-              <div className="flex flex-col sm:flex-row items-center justify-between space-y-3 sm:space-y-0 mb-4">
+            <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 rounded-xl p-4 border border-emerald-200">
+              <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-emerald-500 rounded-lg flex items-center justify-center">
-                    <Star className="w-5 h-5 text-white" />
+                  <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center">
+                    <Star className="w-4 h-4 text-white" />
                   </div>
-                  <div className="text-center sm:text-left">
-                    <div className="font-semibold text-emerald-800 text-lg">{referralCode || 'N/A'}</div>
-                    <div className="text-sm text-emerald-600">Your unique referral code</div>
+                  <div>
+                    <div className="font-bold text-emerald-800 text-base">{referralCode || 'N/A'}</div>
+                    <div className="text-xs text-emerald-600">Your unique referral code</div>
                   </div>
                 </div>
                 <button
                   onClick={() => copyToClipboard(referralCode || userStats.inviteCode || '', 'invite')}
-                  className="flex items-center space-x-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl text-sm font-medium"
+                  className="flex items-center space-x-2 px-3 py-1.5 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-lg hover:from-emerald-600 hover:to-emerald-700 transition-all duration-300 text-xs font-semibold shadow-md hover:shadow-lg"
                 >
                   {copiedInvite ? (
                     <>
@@ -234,44 +234,44 @@ const TeamsPage: React.FC<TeamsPageProps> = ({ userStats, referralCode }) => {
               </div>
               
               {/* Social Sharing Buttons */}
-              <div className="border-t border-emerald-200 pt-4">
-                <div className="text-center mb-3">
-                  <span className="text-sm font-medium text-emerald-700">Share your referral link:</span>
+              <div className="border-t border-emerald-200 pt-3">
+                <div className="text-center mb-2">
+                  <span className="text-xs font-medium text-emerald-700">Share your referral link:</span>
                 </div>
-                <div className="flex flex-wrap justify-center gap-2">
+                <div className="flex flex-wrap justify-center gap-1.5">
                   <button
                     onClick={() => shareToWhatsApp(referralCode || userStats.inviteCode || '')}
-                    className="flex items-center space-x-2 px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl text-xs font-medium"
+                    className="flex items-center space-x-1.5 px-2.5 py-1.5 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-all duration-300 shadow-md hover:shadow-lg text-xs font-medium"
                   >
-                    <MessageCircle className="w-4 h-4" />
+                    <MessageCircle className="w-3.5 h-3.5" />
                     <span>WhatsApp</span>
                   </button>
                   <button
                     onClick={() => shareToTelegram(referralCode || userStats.inviteCode || '')}
-                    className="flex items-center space-x-2 px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl text-xs font-medium"
+                    className="flex items-center space-x-1.5 px-2.5 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-all duration-300 shadow-md hover:shadow-lg text-xs font-medium"
                   >
-                    <MessageCircle className="w-4 h-4" />
+                    <MessageCircle className="w-3.5 h-3.5" />
                     <span>Telegram</span>
                   </button>
                   <button
                     onClick={() => shareToFacebook(referralCode || userStats.inviteCode || '')}
-                    className="flex items-center space-x-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl text-xs font-medium"
+                    className="flex items-center space-x-1.5 px-2.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all duration-300 shadow-md hover:shadow-lg text-xs font-medium"
                   >
-                    <Facebook className="w-4 h-4" />
+                    <Facebook className="w-3.5 h-3.5" />
                     <span>Facebook</span>
                   </button>
                   <button
                     onClick={() => shareToTwitter(referralCode || userStats.inviteCode || '')}
-                    className="flex items-center space-x-2 px-3 py-2 bg-sky-500 hover:bg-sky-600 text-white rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl text-xs font-medium"
+                    className="flex items-center space-x-1.5 px-2.5 py-1.5 bg-sky-500 hover:bg-sky-600 text-white rounded-lg transition-all duration-300 shadow-md hover:shadow-lg text-xs font-medium"
                   >
-                    <Twitter className="w-4 h-4" />
+                    <Twitter className="w-3.5 h-3.5" />
                     <span>Twitter</span>
                   </button>
                   <button
                     onClick={() => shareViaLink(referralCode || userStats.inviteCode || '')}
-                    className="flex items-center space-x-2 px-3 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl text-xs font-medium"
+                    className="flex items-center space-x-1.5 px-2.5 py-1.5 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-all duration-300 shadow-md hover:shadow-lg text-xs font-medium"
                   >
-                    <Globe className="w-4 h-4" />
+                    <Globe className="w-3.5 h-3.5" />
                     <span>Copy Link</span>
                   </button>
                 </div>
@@ -280,41 +280,41 @@ const TeamsPage: React.FC<TeamsPageProps> = ({ userStats, referralCode }) => {
           </div>
 
           {/* Team Stats Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
-            <div className="group bg-white/80 backdrop-blur-xl rounded-2xl p-6 shadow-xl border border-white/50 hover:shadow-2xl hover:bg-white/90 transition-all duration-300 hover:-translate-y-1">
-              <div className="flex flex-col items-center text-center space-y-2 sm:space-y-3">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-lg">
-                  <Users className="w-6 h-6 text-white" />
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+            <div className="group bg-white/90 backdrop-blur-xl rounded-xl p-4 shadow-lg border border-white/60 hover:shadow-xl hover:bg-white/95 transition-all duration-300 hover:-translate-y-1">
+              <div className="flex flex-col items-center text-center space-y-2">
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-md">
+                  <Users className="w-5 h-5 text-white" />
                 </div>
-                <div className="text-2xl sm:text-3xl font-bold text-blue-600 mb-1">{api?.totalTeamMembers || api?.summary?.totalMembers || 0}</div>
-                <div className="text-xs sm:text-sm text-gray-600 font-medium">Team Members</div>
+                <div className="text-xl font-bold text-blue-600 mb-1">{api?.totalTeamMembers || api?.summary?.totalMembers || 0}</div>
+                <div className="text-xs text-gray-600 font-medium">Team Members</div>
               </div>
             </div>
-            <div className="group bg-white/80 backdrop-blur-xl rounded-2xl p-6 shadow-xl border border-white/50 hover:shadow-2xl hover:bg-white/90 transition-all duration-300 hover:-translate-y-1">
-              <div className="flex flex-col items-center text-center space-y-2 sm:space-y-3">
-                <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-lg">
-                  <TrendingUp className="w-6 h-6 text-white" />
+            <div className="group bg-white/90 backdrop-blur-xl rounded-xl p-4 shadow-lg border border-white/60 hover:shadow-xl hover:bg-white/95 transition-all duration-300 hover:-translate-y-1">
+              <div className="flex flex-col items-center text-center space-y-2">
+                <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-md">
+                  <TrendingUp className="w-5 h-5 text-white" />
                 </div>
-                <div className="text-2xl sm:text-3xl font-bold text-emerald-600 mb-1">${api?.totalTeamIncome || 0}</div>
-                <div className="text-xs sm:text-sm text-gray-600 font-medium">Team Income</div>
+                <div className="text-xl font-bold text-emerald-600 mb-1">${api?.totalTeamIncome || 0}</div>
+                <div className="text-xs text-gray-600 font-medium">Team Income</div>
               </div>
             </div>
-            <div className="group bg-white/80 backdrop-blur-xl rounded-2xl p-6 shadow-xl border border-white/50 hover:shadow-2xl hover:bg-white/90 transition-all duration-300 hover:-translate-y-1">
-              <div className="flex flex-col items-center text-center space-y-2 sm:space-y-3">
-                <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-lg">
-                  <Award className="w-6 h-6 text-white" />
+            <div className="group bg-white/90 backdrop-blur-xl rounded-xl p-4 shadow-lg border border-white/60 hover:shadow-xl hover:bg-white/95 transition-all duration-300 hover:-translate-y-1">
+              <div className="flex flex-col items-center text-center space-y-2">
+                <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-md">
+                  <Award className="w-5 h-5 text-white" />
                 </div>
-                <div className="text-2xl sm:text-3xl font-bold text-purple-600 mb-1">Level {mappedUserStats?.referralLevel || 0}</div>
-                <div className="text-xs sm:text-sm text-gray-600 font-medium">VIP Level</div>
+                <div className="text-xl font-bold text-purple-600 mb-1">Level {mappedUserStats?.referralLevel || 0}</div>
+                <div className="text-xs text-gray-600 font-medium">VIP Level</div>
               </div>
             </div>
-            <div className="group bg-white/80 backdrop-blur-xl rounded-2xl p-6 shadow-xl border border-white/50 hover:shadow-2xl hover:bg-white/90 transition-all duration-300 hover:-translate-y-1">
-              <div className="flex flex-col items-center text-center space-y-2 sm:space-y-3">
-                <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-lg">
-                  <Crown className="w-6 h-6 text-white" />
+            <div className="group bg-white/90 backdrop-blur-xl rounded-xl p-4 shadow-lg border border-white/60 hover:shadow-xl hover:bg-white/95 transition-all duration-300 hover:-translate-y-1">
+              <div className="flex flex-col items-center text-center space-y-2">
+                <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-md">
+                  <Crown className="w-5 h-5 text-white" />
                 </div>
-                <div className="text-2xl sm:text-3xl font-bold text-orange-600 mb-1">${mappedUserStats?.dailyIncome?.totalEarned || 0}</div>
-                <div className="text-xs sm:text-sm text-gray-600 font-medium">Total Income</div>
+                <div className="text-xl font-bold text-orange-600 mb-1">${mappedUserStats?.dailyIncome?.totalEarned || 0}</div>
+                <div className="text-xs text-gray-600 font-medium">Total Income</div>
               </div>
             </div>
           </div>
@@ -326,30 +326,30 @@ const TeamsPage: React.FC<TeamsPageProps> = ({ userStats, referralCode }) => {
       </div>
 
       {/* Premium Team Sections */}
-      <div className="p-6 space-y-8 pb-24">
+      <div className="px-4 sm:px-6 space-y-6 pb-24">
         {/* Premium Team Registration */}
-        <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-xl border border-white/50 overflow-hidden">
-          <div className="flex items-center justify-between p-6 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
+        <div className="bg-white/90 backdrop-blur-xl rounded-2xl shadow-lg border border-white/60 overflow-hidden">
+          <div className="flex items-center justify-between p-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
-                <Users className="w-5 h-5 text-white" />
+              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center shadow-md">
+                <Users className="w-4 h-4 text-white" />
               </div>
-              <h3 className="font-bold text-gray-800 text-lg">Team Registration</h3>
+              <h3 className="font-bold text-gray-800 text-base">Team Registration</h3>
             </div>
-            <ChevronRight className="w-5 h-5 text-gray-400" />
+            <ChevronRight className="w-4 h-4 text-gray-400" />
           </div>
-          <div className="p-6">
-            <div className="grid grid-cols-5 gap-4">
+          <div className="p-4">
+            <div className="grid grid-cols-5 gap-3">
               {teamLevels.map((level) => (
                 <div key={level.level} className="text-center">
                   <button
                     onClick={() => handleTeamLevelClick(level.level)}
-                    className={`group w-14 h-14 bg-gradient-to-br ${level.color} rounded-xl flex items-center justify-center mx-auto mb-3 hover:scale-110 transition-all duration-300 shadow-lg hover:shadow-xl`}
+                    className={`group w-12 h-12 bg-gradient-to-br ${level.color} rounded-lg flex items-center justify-center mx-auto mb-2 hover:scale-110 transition-all duration-300 shadow-md hover:shadow-lg`}
                   >
-                    <span className="text-white font-bold text-lg">{level.level}</span>
+                    <span className="text-white font-bold text-base">{level.level}</span>
                   </button>
-                  <div className="text-xl font-bold text-gray-800 mb-1">{level.count}</div>
-                  <div className="text-sm text-gray-600 font-medium">Person</div>
+                  <div className="text-lg font-bold text-gray-800 mb-1">{level.count}</div>
+                  <div className="text-xs text-gray-600 font-medium">Person</div>
                 </div>
               ))}
             </div>
@@ -357,24 +357,24 @@ const TeamsPage: React.FC<TeamsPageProps> = ({ userStats, referralCode }) => {
         </div>
 
         {/* Premium Teams */}
-        <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-xl border border-white/50 overflow-hidden">
-          <div className="flex items-center justify-between p-6 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
+        <div className="bg-white/90 backdrop-blur-xl rounded-2xl shadow-lg border border-white/60 overflow-hidden">
+          <div className="flex items-center justify-between p-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
-                <Star className="w-5 h-5 text-white" />
+              <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center shadow-md">
+                <Star className="w-4 h-4 text-white" />
               </div>
-              <h3 className="font-bold text-gray-800 text-lg">Teams</h3>
+              <h3 className="font-bold text-gray-800 text-base">Teams</h3>
             </div>
-            <ChevronRight className="w-5 h-5 text-gray-400" />
+            <ChevronRight className="w-4 h-4 text-gray-400" />
           </div>
-          <div className="p-6">
-            <div className="grid grid-cols-5 gap-4">
+          <div className="p-4">
+            <div className="grid grid-cols-5 gap-3">
               {teams.map((team) => (
                 <div key={team.level} className="text-center">
-                  <div className={`group w-14 h-14 bg-gradient-to-br ${team.color} rounded-xl flex items-center justify-center mx-auto mb-3 shadow-lg hover:scale-110 transition-all duration-300 hover:shadow-xl`}>
-                    <span className="text-white font-bold text-lg">{team.level}</span>
+                  <div className={`group w-12 h-12 bg-gradient-to-br ${team.color} rounded-lg flex items-center justify-center mx-auto mb-2 shadow-md hover:scale-110 transition-all duration-300 hover:shadow-lg`}>
+                    <span className="text-white font-bold text-base">{team.level}</span>
                   </div>
-                  <div className="text-xl font-bold text-gray-800 mb-1">{team.count}</div>
+                  <div className="text-lg font-bold text-gray-800 mb-1">{team.count}</div>
                   <div className="text-xs text-gray-600 font-medium leading-tight">{team.name}</div>
                 </div>
               ))}
