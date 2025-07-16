@@ -588,7 +588,7 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
       <div className="relative">
         <div className="h-72 relative overflow-hidden">
           <img 
-            src="https://images.pexels.com/photos/261102/pexels-photo-261102.jpeg?auto=compress&cs=tinysrgb&w=1200" 
+            src="https://arc-anglerfish-washpost-prod-washpost.s3.amazonaws.com/public/JSECRUQUPEI6PAZ4KA7B6Y4UZE.jpg" 
             alt="Resort" 
             className="w-full h-full object-cover"
           />
