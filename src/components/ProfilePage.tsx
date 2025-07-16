@@ -61,7 +61,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ profile, onLogout }) => {
   // API functions
   const fetchTickets = async () => {
     try {
-      const response = await fetch('https://7cvccltb-3100.inc1.devtunnels.ms/chat/my-tickets', {
+      const response = await fetch('https://api.goalsbot.com/chat/my-tickets', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
         },
@@ -77,7 +77,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ profile, onLogout }) => {
 
   const fetchUnreadCount = async () => {
     try {
-      const response = await fetch('https://7cvccltb-3100.inc1.devtunnels.ms/chat/unread-count', {
+      const response = await fetch('https://api.goalsbot.com/chat/unread-count', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
         },
@@ -94,7 +94,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ profile, onLogout }) => {
   const createTicket = async (ticketData: CreateTicketData) => {
     setLoading(true);
     try {
-      const response = await fetch('https://7cvccltb-3100.inc1.devtunnels.ms/chat/create-ticket', {
+      const response = await fetch('https://api.goalsbot.com/chat/create-ticket', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
@@ -131,7 +131,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ profile, onLogout }) => {
         formData.append('messageType', 'file');
       }
 
-      const response = await fetch(`https://7cvccltb-3100.inc1.devtunnels.ms/chat/ticket/${ticketId}/message`, {
+      const response = await fetch(`https://api.goalsbot.com/chat/ticket/${ticketId}/message`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
@@ -151,7 +151,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ profile, onLogout }) => {
 
   const fetchTicketDetails = async (ticketId: string) => {
     try {
-      const response = await fetch(`https://7cvccltb-3100.inc1.devtunnels.ms/chat/ticket/${ticketId}`, {
+      const response = await fetch(`https://api.goalsbot.com/chat/ticket/${ticketId}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
         },
@@ -167,7 +167,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ profile, onLogout }) => {
 
   const closeTicket = async (ticketId: string) => {
     try {
-      const response = await fetch(`https://7cvccltb-3100.inc1.devtunnels.ms/chat/ticket/${ticketId}/close`, {
+      const response = await fetch(`https://api.goalsbot.com/chat/ticket/${ticketId}/close`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('authToken')}`,

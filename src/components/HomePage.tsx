@@ -151,7 +151,7 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
   const handleDailyIncomeClaim = async () => {
     setDailySignInLoading(true);
     try {
-      const res = await fetch('http://localhost:3100/users/today-my-income', {
+      const res = await fetch('https://api.goalsbot.com/users/today-my-income', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
@@ -200,7 +200,7 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
   const handleLevelIncomeClaim = async () => {
     setDailySignInLoading(true);
     try {
-      const res = await fetch('http://localhost:3100/users/today-my-income', {
+      const res = await fetch('https://api.goalsbot.com/users/today-my-income', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
@@ -1296,7 +1296,7 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
                 setTransferError('');
                 setTransferUser(null);
                 try {
-                  const res = await fetch(`http://localhost:3100/users/user-by-referral/${transferInput}`, {
+                  const res = await fetch(`https://api.goalsbot.com/users/user-by-referral/${transferInput}`, {
                     headers: {
                       'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
                     },
@@ -1339,7 +1339,7 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
                       setTransferSubmitLoading(true);
                       setTransferSubmitError('');
                       try {
-                        const res = await fetch('http://localhost:3100/users/transfer-to-user', {
+                        const res = await fetch('https://api.goalsbot.com/users/transfer-to-user', {
                           method: 'POST',
                           headers: {
                             'Authorization': `Bearer ${localStorage.getItem('authToken')}`,

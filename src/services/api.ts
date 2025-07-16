@@ -1,6 +1,6 @@
 // API base URL
 // const API_BASE_URL = 'http://localhost:3100';
-const API_BASE_URL = 'https://7cvccltb-3100.inc1.devtunnels.ms';
+const API_BASE_URL = 'https://api.goalsbot.com';
 
 // Global error handler for 401 responses
 let onUnauthorized: (() => void) | null = null;

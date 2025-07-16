@@ -262,7 +262,7 @@ const MyInvestmentsPage: React.FC<MyInvestmentsPageProps> = ({ investments, onIn
                 return (
                   <div key={plan._id} className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-6 border border-gray-200 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 flex flex-col">
                     <img
-                      src={`http://localhost:3100/uploads/${plan.image}`}
+                      src={`https://api.goalsbot.com/uploads/${plan.image}`}
                       alt={plan.title}
                       className="w-full h-40 object-cover rounded-xl mb-4 border border-gray-200"
                     />
@@ -643,7 +643,7 @@ const MyInvestmentsPage: React.FC<MyInvestmentsPageProps> = ({ investments, onIn
                           </span>
                         </div>
                         <img
-                          src={`http://localhost:3100/uploads/${inv.planId.image}`}
+                          src={`https://api.goalsbot.com/uploads/${inv.planId.image}`}
                           alt={inv.planId.title}
                           className="w-full h-32 object-cover rounded-xl mb-4 border-4 border-white shadow-lg bg-white/30"
                           onError={e => { e.currentTarget.src = '/fallback-image.png'; }}
@@ -785,7 +785,7 @@ const MyInvestmentsPage: React.FC<MyInvestmentsPageProps> = ({ investments, onIn
               </button>
             </div>
             <div className="mb-4">
-              <img src={`http://localhost:3100/uploads/${selectedPlan.image}`} alt={selectedPlan.title} className="w-full h-32 object-cover rounded-xl mb-2 border border-gray-200" />
+              <img src={`https://api.goalsbot.com/uploads/${selectedPlan.image}`} alt={selectedPlan.title} className="w-full h-32 object-cover rounded-xl mb-2 border border-gray-200" />
               <div className="text-lg font-bold text-gray-800 mb-1">{selectedPlan.title}</div>
               <div className="text-gray-600 text-sm mb-2">{selectedPlan.description}</div>
               <div className="grid grid-cols-2 gap-2 text-xs text-gray-700 mb-2">

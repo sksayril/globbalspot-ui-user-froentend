@@ -446,10 +446,10 @@ const ActivityPage: React.FC<ActivityPageProps> = ({ userStats }) => {
                           <div className="text-xs font-medium text-gray-600 mb-2">Payment Proof</div>
                           <div className="relative group">
                             <img
-                              src={`http://localhost:3100/${deposit.paymentProof.replace(/\\/g, '/')}`}
+                              src={`https://api.goalsbot.com/${deposit.paymentProof.replace(/\\/g, '/')}`}
                               alt="Payment Proof"
                               className="w-full h-32 object-cover rounded-lg border border-gray-200 cursor-pointer hover:opacity-90 transition-opacity"
-                              onClick={() => window.open(`http://localhost:3100/${deposit.paymentProof.replace(/\\/g, '/')}`, '_blank')}
+                              onClick={() => window.open(`https://api.goalsbot.com/${deposit.paymentProof.replace(/\\/g, '/')}`, '_blank')}
                             />
                             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors rounded-lg flex items-center justify-center">
                               <Eye className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
