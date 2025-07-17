@@ -200,25 +200,39 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
   const handleLevelIncomeClaim = async () => {
     setDailySignInLoading(true);
     try {
-      const res = await fetch('https://api.goalsbot.com/users/today-my-income', {
+      // First claim daily income
+      const dailyRes = await fetch('https://api.goalsbot.com/users/today-my-income', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
           'Content-Type': 'application/json',
         },
       });
-      const data = await res.json();
-      const claimSuccess = data.success;
+      const dailyData = await dailyRes.json();
+      
+      // Then claim team income
+      const teamRes = await fetch('http://localhost:3110/users/claim-team-income', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      const teamData = await teamRes.json();
+      
+      const dailySuccess = dailyData.success;
+      const teamSuccess = teamData.success;
+      
       await Swal.fire({
-        icon: claimSuccess ? undefined : 'error',
-        title: claimSuccess ? '🎉 Level Income Claimed!' : 'Oops!',
-        text: claimSuccess
-          ? (data.message || 'You have successfully claimed your level income!')
-          : (data.message || 'Failed to claim level income.'),
+        icon: (dailySuccess && teamSuccess) ? undefined : 'error',
+        title: (dailySuccess && teamSuccess) ? '🎉 Level & Team Income Claimed!' : 'Partial Success',
+        text: (dailySuccess && teamSuccess) 
+          ? `Daily Income: ${dailyData.message || 'Claimed successfully!'}\nTeam Income: ${teamData.message || 'Claimed successfully!'}`
+          : `Daily Income: ${dailySuccess ? 'Success' : 'Failed'}\nTeam Income: ${teamSuccess ? 'Success' : 'Failed'}`,
         background: 'linear-gradient(135deg, #f0f4ff 0%, #e0ffe7 100%)',
         color: '#222',
-        confirmButtonColor: claimSuccess ? '#22c55e' : '#ef4444',
-        confirmButtonText: claimSuccess ? 'Awesome!' : 'OK',
+        confirmButtonColor: (dailySuccess && teamSuccess) ? '#22c55e' : '#ef4444',
+        confirmButtonText: (dailySuccess && teamSuccess) ? 'Awesome!' : 'OK',
         customClass: {
           popup: 'swal2-border-radius',
           title: 'swal2-title-bold',
@@ -599,6 +613,29 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
 
               {/* Premium Quick Actions */}
         <div className="px-4 sm:px-6 mt-0 relative pb-8">
+          {/* Total Balance Card */}
+          <div className="bg-white/90 backdrop-blur-xl rounded-xl p-4 shadow-lg border border-white/60 mb-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center shadow-md">
+                  <Wallet className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <span className="font-bold text-gray-800 text-base">Total Balance</span>
+                  <p className="text-xs text-gray-600">Investment + Wallet</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-2xl font-bold text-indigo-600">
+                  ${((userStats?.investmentWallet?.balance || 0) + (userStats?.normalWallet?.balance || 0)).toFixed(2)}
+                </div>
+                <div className="text-xs text-gray-500">
+                  ${(userStats?.investmentWallet?.balance || 0).toFixed(2)} + ${(userStats?.normalWallet?.balance || 0).toFixed(2)}
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
             <div className="group bg-white/90 backdrop-blur-xl rounded-xl p-4 shadow-lg border border-white/60 hover:shadow-xl hover:bg-white/95 transition-all duration-300 hover:-translate-y-1">
               <div className="flex items-center space-x-3">
@@ -662,7 +699,7 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
               <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-lg">
                 <Star className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
-              <div className="text-2xl sm:text-3xl font-bold text-emerald-600 mb-1">${userStats?.dailyIncome?.todayEarned || 0}</div>
+              <div className="text-2xl sm:text-3xl font-bold text-emerald-600 mb-1">${(userStats?.dailyIncome?.todayEarned || 0).toFixed(3)}</div>
               <div className="text-xs sm:text-sm text-gray-600 font-medium">Today Income</div>
             </div>
           </div>
@@ -709,7 +746,7 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
               <div className="text-2xl sm:text-3xl font-bold text-blue-600 mb-1">
                 ${(userStats?.normalWallet?.balance || 0).toLocaleString()}
               </div>
-              <div className="text-xs sm:text-sm text-gray-600 font-medium">Normal Wallet Balance</div>
+              <div className="text-xs sm:text-sm text-gray-600 font-medium">Wallet Balance</div>
             </div>
           </div>
         </div>
@@ -1157,7 +1194,7 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
                     {cryptoWalletData.imageUrl && (
                       <div className="mb-4 w-full flex justify-center">
                         <img
-                          src={`http://localhost:3100${cryptoWalletData.imageUrl}`}
+                          src={`https://api.goalsbot.com${cryptoWalletData.imageUrl}`}
                           alt="Crypto Wallet QR Code"
                           className="w-full max-w-[180px] aspect-square rounded border object-contain bg-white"
                         />

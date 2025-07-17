@@ -26,9 +26,50 @@ interface TeamMember {
   assets: number;
 }
 
+interface TeamIncomeData {
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    referralCode: string;
+    characterLevel: string;
+    digitLevel: string | null;
+  };
+  levelBasedIncome: {
+    characterLevelIncome: number;
+    digitLevelIncome: number;
+    totalDailyTeamIncome: number;
+    characterLevel: string;
+    digitLevel: string | null;
+  };
+  teamIncomeByLevel: {
+    level1: any;
+    level2: any;
+    level3: any;
+    level4: any;
+    level5: any;
+  };
+  totalTeamMembers: number;
+  totalTeamIncome: number;
+  totalNormalWalletBalance: number;
+  totalInvestmentWalletBalance: number;
+  summary: {
+    level1Members: number;
+    level2Members: number;
+    level3Members: number;
+    level4Members: number;
+    level5Members: number;
+    totalMembers: number;
+    totalIncome: number;
+    totalNormalWallet: number;
+    totalInvestmentWallet: number;
+    dailyTeamIncome: number;
+  };
+}
+
 const TeamsPage: React.FC<TeamsPageProps> = ({ userStats, referralCode }) => {
   // State for API data
-  const [teamIncomeData, setTeamIncomeData] = useState<TeamIncomeResponse['data'] | null>(null);
+  const [teamIncomeData, setTeamIncomeData] = useState<TeamIncomeData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -37,8 +78,17 @@ const TeamsPage: React.FC<TeamsPageProps> = ({ userStats, referralCode }) => {
       setLoading(true);
       setError(null);
       try {
-        const res = await getTeamIncome();
-        setTeamIncomeData(res.data);
+        const res = await fetch('http://localhost:3110/users/team-income', {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+          },
+        });
+        const data = await res.json();
+        if (data.success) {
+          setTeamIncomeData(data.data);
+        } else {
+          setError(data.message || 'Failed to fetch team income');
+        }
       } catch (err: any) {
         setError(err.message || 'Failed to fetch team income');
       } finally {
@@ -280,7 +330,7 @@ const TeamsPage: React.FC<TeamsPageProps> = ({ userStats, referralCode }) => {
           </div>
 
           {/* Team Stats Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
             <div className="group bg-white/90 backdrop-blur-xl rounded-xl p-4 shadow-lg border border-white/60 hover:shadow-xl hover:bg-white/95 transition-all duration-300 hover:-translate-y-1">
               <div className="flex flex-col items-center text-center space-y-2">
                 <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-md">
@@ -290,16 +340,16 @@ const TeamsPage: React.FC<TeamsPageProps> = ({ userStats, referralCode }) => {
                 <div className="text-xs text-gray-600 font-medium">Team Members</div>
               </div>
             </div>
-            <div className="group bg-white/90 backdrop-blur-xl rounded-xl p-4 shadow-lg border border-white/60 hover:shadow-xl hover:bg-white/95 transition-all duration-300 hover:-translate-y-1">
-              <div className="flex flex-col items-center text-center space-y-2">
+            {/* <div className="group bg-white/90 backdrop-blur-xl rounded-xl p-4 shadow-lg border border-white/60 hover:shadow-xl hover:bg-white/95 transition-all duration-300 hover:-translate-y-1"> */}
+              {/* <div className="flex flex-col items-center text-center space-y-2">
                 <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-md">
                   <TrendingUp className="w-5 h-5 text-white" />
                 </div>
                 <div className="text-xl font-bold text-emerald-600 mb-1">${api?.totalTeamIncome || 0}</div>
                 <div className="text-xs text-gray-600 font-medium">Team Income</div>
-              </div>
-            </div>
-            <div className="group bg-white/90 backdrop-blur-xl rounded-xl p-4 shadow-lg border border-white/60 hover:shadow-xl hover:bg-white/95 transition-all duration-300 hover:-translate-y-1">
+              </div> */}
+            {/* </div> */}
+            {/* <div className="group bg-white/90 backdrop-blur-xl rounded-xl p-4 shadow-lg border border-white/60 hover:shadow-xl hover:bg-white/95 transition-all duration-300 hover:-translate-y-1">
               <div className="flex flex-col items-center text-center space-y-2">
                 <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-md">
                   <Award className="w-5 h-5 text-white" />
@@ -307,14 +357,23 @@ const TeamsPage: React.FC<TeamsPageProps> = ({ userStats, referralCode }) => {
                 <div className="text-xl font-bold text-purple-600 mb-1">Level {mappedUserStats?.referralLevel || 0}</div>
                 <div className="text-xs text-gray-600 font-medium">VIP Level</div>
               </div>
-            </div>
-            <div className="group bg-white/90 backdrop-blur-xl rounded-xl p-4 shadow-lg border border-white/60 hover:shadow-xl hover:bg-white/95 transition-all duration-300 hover:-translate-y-1">
+            </div> */}
+            {/* <div className="group bg-white/90 backdrop-blur-xl rounded-xl p-4 shadow-lg border border-white/60 hover:shadow-xl hover:bg-white/95 transition-all duration-300 hover:-translate-y-1">
               <div className="flex flex-col items-center text-center space-y-2">
                 <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-md">
                   <Crown className="w-5 h-5 text-white" />
                 </div>
                 <div className="text-xl font-bold text-orange-600 mb-1">${mappedUserStats?.dailyIncome?.totalEarned || 0}</div>
                 <div className="text-xs text-gray-600 font-medium">Total Income</div>
+              </div>
+            </div> */}
+            <div className="group bg-white/90 backdrop-blur-xl rounded-xl p-4 shadow-lg border border-white/60 hover:shadow-xl hover:bg-white/95 transition-all duration-300 hover:-translate-y-1">
+              <div className="flex flex-col items-center text-center space-y-2">
+                <div className="w-10 h-10 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-md">
+                  <DollarSign className="w-5 h-5 text-white" />
+                </div>
+                <div className="text-xl font-bold text-yellow-600 mb-1">${api?.levelBasedIncome?.totalDailyTeamIncome || 0}</div>
+                <div className="text-xs text-gray-600 font-medium">My Income From Teams</div>
               </div>
             </div>
           </div>
