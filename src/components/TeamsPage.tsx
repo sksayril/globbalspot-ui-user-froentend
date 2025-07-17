@@ -78,7 +78,7 @@ const TeamsPage: React.FC<TeamsPageProps> = ({ userStats, referralCode }) => {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch('http://localhost:3110/users/team-income', {
+        const res = await fetch('https://api.goalsbot.com/users/team-income', {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
           },

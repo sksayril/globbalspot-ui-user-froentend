@@ -211,7 +211,7 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
       const dailyData = await dailyRes.json();
       
       // Then claim team income
-      const teamRes = await fetch('http://localhost:3110/users/claim-team-income', {
+      const teamRes = await fetch('https://api.goalsbot.com/users/claim-team-income', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
