@@ -102,6 +102,30 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
     fetchLuckyDrawData();
   }, []);
 
+  // Fetch wallet information on component mount
+  useEffect(() => {
+    const fetchWalletInfo = async () => {
+      try {
+        setWalletLoading(true);
+        const response = await fetch('https://api.goalsbot.com/users/wallet-info', {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+          },
+        });
+        const data = await response.json();
+        if (data.success) {
+          setWalletInfo(data.data);
+        }
+      } catch (error) {
+        console.error('Error fetching wallet info:', error);
+      } finally {
+        setWalletLoading(false);
+      }
+    };
+
+    fetchWalletInfo();
+  }, []);
+
   // Copy wallet ID to clipboard
   const copyWalletId = async (walletId: string) => {
     try {
@@ -339,6 +363,12 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
     }).format(amount);
   };
 
+  // Helper function to format numbers with max 3 decimal places
+  const formatNumber = (value: number | undefined | null): string => {
+    if (value === undefined || value === null) return '0';
+    return Number(value).toFixed(3).replace(/\.?0+$/, '');
+  };
+
   // Handle level sign-in
   const handleLevelSignIn = () => {
     alert(`Level ${userStats?.referralLevel || 0} sign-in completed! Level bonus unlocked.`);
@@ -408,6 +438,26 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
     amount: '',
     walletAddress: '',
   });
+
+  // Wallet Management state
+  const [showWalletSetupModal, setShowWalletSetupModal] = useState(false);
+  const [showWalletChangeModal, setShowWalletChangeModal] = useState(false);
+  const [walletInfo, setWalletInfo] = useState<any>(null);
+  const [walletChangeRequests, setWalletChangeRequests] = useState<any[]>([]);
+  const [walletForm, setWalletForm] = useState({
+    walletAddress: '',
+    qrCode: null as File | null,
+    reason: '',
+  });
+  const [walletChangeForm, setWalletChangeForm] = useState({
+    newWalletAddress: '',
+    reason: '',
+    newQrCode: null as File | null,
+  });
+  const [walletChangeLoading, setWalletChangeLoading] = useState(false);
+  const [walletError, setWalletError] = useState('');
+  const [walletSuccess, setWalletSuccess] = useState('');
+  const [walletLoading, setWalletLoading] = useState(false);
   const [depositLoading, setDepositLoading] = useState(false);
   const [withdrawalLoading, setWithdrawalLoading] = useState(false);
   const [depositError, setDepositError] = useState('');
@@ -435,29 +485,172 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
     setWithdrawalError('');
     setWithdrawalSuccess('');
     try {
+      console.log('Withdrawal form amount:', withdrawalForm.amount);
+      console.log('Withdrawal form amount type:', typeof withdrawalForm.amount);
+      
       if (!withdrawalForm.amount || isNaN(parseFloat(withdrawalForm.amount))) {
         throw new Error('Please enter a valid amount');
       }
       const amount = parseFloat(withdrawalForm.amount);
+      console.log('Parsed amount:', amount);
+      console.log('Parsed amount type:', typeof amount);
+      
       if (amount <= 0) {
         throw new Error('Amount must be greater than 0');
       }
-      if (!withdrawalForm.walletAddress.trim()) {
-        throw new Error('Wallet address is required');
+      
+      // Check if user has wallet info set up
+      if (!walletInfo?.walletInfo?.address || !walletInfo?.walletInfo?.qrCode) {
+        setShowWalletSetupModal(true);
+        setWithdrawalError('Please set up your payment address first');
+        return;
       }
       
-      const response = await createWithdrawalRequest({
+      // Prepare JSON data for the request
+      const requestData = {
         amount: amount,
-        walletAddress: withdrawalForm.walletAddress.trim(),
+        withdrawalWalletText: walletInfo.walletInfo.address,
+        withdrawalWalletImage: walletInfo.walletInfo.qrCode ? `https://api.goalsbot.com/${walletInfo.walletInfo.qrCode.replace(/\\/g, '/')}` : null
+      };
+      
+      // Debug: Log the request data
+      console.log('Request data:', requestData);
+      
+      const response = await fetch('https://api.goalsbot.com/withdrawal/request', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestData),
       });
-      setWithdrawalSuccess('Withdrawal request submitted successfully!');
-      setShowWithdrawalModal(false);
-      setWithdrawalForm({ amount: '', walletAddress: '' });
-      refreshWalletData();
+      
+      const data = await response.json();
+      if (data.success) {
+        setWithdrawalSuccess('Withdrawal request submitted successfully!');
+        setShowWithdrawalModal(false);
+        setWithdrawalForm({ amount: '', walletAddress: '' });
+        refreshWalletData();
+      } else {
+        setWithdrawalError(data.message || 'Failed to submit withdrawal request.');
+      }
     } catch (err: any) {
       setWithdrawalError(err.message || 'Failed to submit withdrawal request.');
     } finally {
       setWithdrawalLoading(false);
+    }
+  };
+
+  // Wallet management functions
+  const handleWalletFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value, files } = e.target as HTMLInputElement;
+    if (name === 'qrCode' && files) {
+      setWalletForm(prev => ({ ...prev, qrCode: files[0] }));
+    } else {
+      setWalletForm(prev => ({ ...prev, [name]: value }));
+    }
+  };
+
+  const handleWalletChangeFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value, files } = e.target as HTMLInputElement;
+    if (name === 'newQrCode' && files) {
+      setWalletChangeForm(prev => ({ ...prev, newQrCode: files[0] }));
+    } else {
+      setWalletChangeForm(prev => ({ ...prev, [name]: value }));
+    }
+  };
+
+  const handleWalletSetup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setWalletLoading(true);
+    setWalletError('');
+    setWalletSuccess('');
+    try {
+      if (!walletForm.walletAddress.trim()) {
+        throw new Error('Wallet address is required');
+      }
+      if (!walletForm.qrCode) {
+        throw new Error('QR code image is required');
+      }
+
+      const formData = new FormData();
+      formData.append('walletAddress', walletForm.walletAddress.trim());
+      formData.append('qrCode', walletForm.qrCode);
+
+      const response = await fetch('https://api.goalsbot.com/users/set-wallet-info', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+        },
+        body: formData,
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setWalletSuccess('Payment address set successfully!');
+        setShowWalletSetupModal(false);
+        setWalletForm({ walletAddress: '', qrCode: null, reason: '' });
+        // Refresh wallet info
+        const walletResponse = await fetch('https://api.goalsbot.com/users/wallet-info', {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+          },
+        });
+        const walletData = await walletResponse.json();
+        if (walletData.success) {
+          setWalletInfo(walletData.data);
+        }
+      } else {
+        setWalletError(data.message || 'Failed to set wallet information.');
+      }
+    } catch (err: any) {
+      setWalletError(err.message || 'Failed to set wallet information.');
+    } finally {
+      setWalletLoading(false);
+    }
+  };
+
+  const handleWalletChangeRequest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setWalletChangeLoading(true);
+    setWalletError('');
+    setWalletSuccess('');
+    try {
+      if (!walletChangeForm.newWalletAddress.trim()) {
+        throw new Error('New wallet address is required');
+      }
+      if (!walletChangeForm.reason.trim()) {
+        throw new Error('Reason for change is required');
+      }
+      if (!walletChangeForm.newQrCode) {
+        throw new Error('New QR code image is required');
+      }
+
+      const formData = new FormData();
+      formData.append('newWalletAddress', walletChangeForm.newWalletAddress.trim());
+      formData.append('reason', walletChangeForm.reason.trim());
+      formData.append('newQrCode', walletChangeForm.newQrCode);
+
+      const response = await fetch('https://api.goalsbot.com/users/request-wallet-change', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+        },
+        body: formData,
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setWalletSuccess('Wallet change request submitted successfully!');
+        setShowWalletChangeModal(false);
+        setWalletChangeForm({ newWalletAddress: '', reason: '', newQrCode: null });
+      } else {
+        setWalletError(data.message || 'Failed to submit wallet change request.');
+      }
+    } catch (err: any) {
+      setWalletError(err.message || 'Failed to submit wallet change request.');
+    } finally {
+      setWalletChangeLoading(false);
     }
   };
 
@@ -697,7 +890,7 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
               <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-lg">
                 <Wallet className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
-              <div className="text-2xl sm:text-3xl font-bold text-blue-600 mb-1">{(userStats?.dailyIncome?.totalEarned || 0).toLocaleString()}</div>
+                              <div className="text-2xl sm:text-3xl font-bold text-blue-600 mb-1">{formatNumber(userStats?.dailyIncome?.totalEarned)}</div>
               <div className="text-xs sm:text-sm text-gray-600 font-medium">Total Income</div>
             </div>
           </div>
@@ -718,7 +911,7 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
                 </svg>
               </div>
               <div className="text-2xl sm:text-3xl font-bold text-indigo-700 mb-1">
-                ${(userStats?.investmentWallet?.balance || 0).toLocaleString()}
+                ${formatNumber(userStats?.investmentWallet?.balance)}
               </div>
               <div className="text-xs sm:text-sm text-gray-600 font-medium">My InvestWallet Balance</div>
               <div className="text-xs sm:text-sm text-gray-500 mt-1 text-center">
@@ -733,7 +926,7 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
                 <Wallet className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
               <div className="text-2xl sm:text-3xl font-bold text-blue-600 mb-1">
-                ${(userStats?.normalWallet?.balance || 0).toLocaleString()}
+                ${formatNumber(userStats?.normalWallet?.balance)}
               </div>
               <div className="text-xs sm:text-sm text-gray-600 font-medium">Wallet Balance</div>
             </div>
@@ -1414,6 +1607,65 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
             <h2 className="text-lg sm:text-xl font-bold mb-4">Withdraw Funds</h2>
             {withdrawalError && <div className="mb-2 text-red-600 text-sm">{withdrawalError}</div>}
             {withdrawalSuccess && <div className="mb-2 text-green-600 text-sm">{withdrawalSuccess}</div>}
+            
+            {/* Wallet Information Display */}
+            {walletInfo?.walletInfo && walletInfo.walletInfo.address && walletInfo.walletInfo.qrCode ? (
+              <div className="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h3 className="font-semibold text-blue-800 mb-2">Your Wallet Information</h3>
+                <div className="space-y-2 text-sm">
+                  <div>
+                    <span className="text-blue-600">Address:</span>
+                    <div className="font-mono text-blue-800 break-all">{walletInfo.walletInfo.address}</div>
+                  </div>
+                  {walletInfo.walletInfo.qrCode && (
+                    <div>
+                      <span className="text-blue-600">QR Code:</span>
+                      <img 
+                        src={`https://api.goalsbot.com/${walletInfo.walletInfo.qrCode.replace(/\\/g, '/')}`} 
+                        alt="Wallet QR Code" 
+                        className="w-24 h-24 mt-1 border rounded"
+                      />
+                    </div>
+                  )}
+                  <div>
+                    <span className="text-blue-600">Status:</span>
+                    <span className={`ml-1 px-2 py-1 rounded text-xs ${
+                      walletInfo.walletInfo.isVerified ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                    }`}>
+                      {walletInfo.walletInfo.isVerified ? 'Verified' : 'Pending Verification'}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowWithdrawalModal(false);
+                    setShowWalletChangeModal(true);
+                  }}
+                  className="mt-3 text-sm text-blue-600 hover:text-blue-800 underline"
+                >
+                  Change Wallet Information
+                </button>
+              </div>
+            ) : (
+              <div className="mb-4 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <h3 className="font-semibold text-yellow-800 mb-2">Payment Address Setup Required</h3>
+                <p className="text-sm text-yellow-700 mb-3">
+                  You need to set up your payment address before making withdrawals.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowWithdrawalModal(false);
+                    setShowWalletSetupModal(true);
+                  }}
+                  className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors"
+                >
+                  Set Up Payment Address
+                </button>
+              </div>
+            )}
+            
             <form onSubmit={handleWithdrawalSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Amount</label>
@@ -1425,23 +1677,14 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
                   className="w-full border rounded px-3 py-2 text-base"
                   placeholder="Enter amount to withdraw"
                   required
+                  min="0.01"
+                  step="0.01"
                 />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Wallet Address</label>
-                <input
-                  type="text"
-                  name="walletAddress"
-                  value={withdrawalForm.walletAddress}
-                  onChange={handleWithdrawalChange}
-                  className="w-full border rounded px-3 py-2 text-base"
-                  placeholder="Enter your wallet address"
-                  required
-                />
+                <p className="text-xs text-gray-500 mt-1">Enter the amount you want to withdraw</p>
               </div>
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
                 <p className="text-sm text-yellow-800">
-                  <strong>Note:</strong> Please ensure your wallet address is correct. Withdrawals may take 24-48 hours to process.
+                  <strong>Note:</strong> Withdrawal will be sent to your registered wallet address. Withdrawals may take 24-48 hours to process.
                 </p>
               </div>
               <div className="flex flex-col gap-2 sm:flex-row sm:gap-4 justify-end mt-4 mb-2">
@@ -1456,9 +1699,165 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
                 <button
                   type="submit"
                   className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700 w-full sm:w-auto"
-                  disabled={withdrawalLoading}
+                  disabled={withdrawalLoading || !walletInfo?.walletInfo?.address || !walletInfo?.walletInfo?.qrCode}
                 >
                   {withdrawalLoading ? 'Submitting...' : 'Submit Withdrawal'}
+                </button>
+              </div>
+              <div className="mb-4" />
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Wallet Setup Modal */}
+      {showWalletSetupModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xs sm:max-w-md p-4 sm:p-8 relative pb-24 overflow-y-auto max-h-[90vh]">
+            <button
+              className="absolute top-3 right-3 text-gray-400 hover:text-gray-700"
+              onClick={() => setShowWalletSetupModal(false)}
+            >
+              &times;
+            </button>
+            <h2 className="text-lg sm:text-xl font-bold mb-4">Set Up Payment Address</h2>
+            {walletError && <div className="mb-2 text-red-600 text-sm">{walletError}</div>}
+            {walletSuccess && <div className="mb-2 text-green-600 text-sm">{walletSuccess}</div>}
+            
+            <form onSubmit={handleWalletSetup} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Payment Address</label>
+                <input
+                  type="text"
+                  name="walletAddress"
+                  value={walletForm.walletAddress}
+                  onChange={handleWalletFormChange}
+                  className="w-full border rounded px-3 py-2 text-base"
+                  placeholder="Enter your payment address"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Payment QR Code</label>
+                <input
+                  type="file"
+                  name="qrCode"
+                  accept="image/*"
+                  onChange={handleWalletFormChange}
+                  className="w-full border rounded px-3 py-2 text-base"
+                  required
+                />
+                <p className="text-xs text-gray-500 mt-1">Upload a clear image of your payment QR code</p>
+              </div>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="text-sm text-blue-800">
+                  <strong>Important:</strong> This wallet information will be used for all future withdrawals. Make sure the information is correct.
+                </p>
+              </div>
+              <div className="flex flex-col gap-2 sm:flex-row sm:gap-4 justify-end mt-4 mb-2">
+                <button
+                  type="button"
+                  className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 w-full sm:w-auto"
+                  onClick={() => setShowWalletSetupModal(false)}
+                  disabled={walletLoading}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 w-full sm:w-auto"
+                  disabled={walletLoading}
+                >
+                  {walletLoading ? 'Setting Up...' : 'Set Up Payment Address'}
+                </button>
+              </div>
+              <div className="mb-4" />
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Wallet Change Request Modal */}
+      {showWalletChangeModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xs sm:max-w-md p-4 sm:p-8 relative pb-24 overflow-y-auto max-h-[90vh]">
+            <button
+              className="absolute top-3 right-3 text-gray-400 hover:text-gray-700"
+              onClick={() => setShowWalletChangeModal(false)}
+            >
+              &times;
+            </button>
+            <h2 className="text-lg sm:text-xl font-bold mb-4">Request Wallet Change</h2>
+            {walletError && <div className="mb-2 text-red-600 text-sm">{walletError}</div>}
+            {walletSuccess && <div className="mb-2 text-green-600 text-sm">{walletSuccess}</div>}
+            
+            {/* Current Wallet Info */}
+            {walletInfo?.walletInfo && (
+              <div className="mb-4 bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <h3 className="font-semibold text-gray-800 mb-2">Current Wallet</h3>
+                <div className="text-sm text-gray-600">
+                  <div className="font-mono break-all">{walletInfo.walletInfo.address}</div>
+                </div>
+              </div>
+            )}
+            
+            <form onSubmit={handleWalletChangeRequest} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">New Wallet Address</label>
+                <input
+                  type="text"
+                  name="newWalletAddress"
+                  value={walletChangeForm.newWalletAddress}
+                  onChange={handleWalletChangeFormChange}
+                  className="w-full border rounded px-3 py-2 text-base"
+                  placeholder="Enter new wallet address"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">New QR Code Image</label>
+                <input
+                  type="file"
+                  name="newQrCode"
+                  accept="image/*"
+                  onChange={handleWalletChangeFormChange}
+                  className="w-full border rounded px-3 py-2 text-base"
+                  required
+                />
+                <p className="text-xs text-gray-500 mt-1">Upload a clear image of your new wallet's QR code</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Reason for Change</label>
+                <textarea
+                  name="reason"
+                  value={walletChangeForm.reason}
+                  onChange={handleWalletChangeFormChange}
+                  className="w-full border rounded px-3 py-2 text-base"
+                  placeholder="Explain why you need to change your wallet"
+                  rows={3}
+                  required
+                />
+              </div>
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                <p className="text-sm text-yellow-800">
+                  <strong>Note:</strong> Wallet change requests require admin approval and may take 24-48 hours to process.
+                </p>
+              </div>
+              <div className="flex flex-col gap-2 sm:flex-row sm:gap-4 justify-end mt-4 mb-2">
+                <button
+                  type="button"
+                  className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 w-full sm:w-auto"
+                  onClick={() => setShowWalletChangeModal(false)}
+                  disabled={walletChangeLoading}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded bg-orange-600 text-white hover:bg-orange-700 w-full sm:w-auto"
+                  disabled={walletChangeLoading}
+                >
+                  {walletChangeLoading ? 'Submitting...' : 'Submit Request'}
                 </button>
               </div>
               <div className="mb-4" />

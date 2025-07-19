@@ -202,17 +202,23 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ profile, onLogout }) => {
     );
   }
 
+  // Helper function to format numbers with max 3 decimal places
+  const formatNumber = (value: number | undefined | null): string => {
+    if (value === undefined || value === null) return '0';
+    return Number(value).toFixed(3).replace(/\.?0+$/, '');
+  };
+
   const menuItems = [
-    { icon: Wallet, label: 'Investment Wallet', value: `$${profile?.investmentWallet?.balance ?? 0}`, color: 'from-emerald-500 to-emerald-600', bgColor: 'bg-emerald-50', iconColor: 'text-emerald-600' },
-    { icon: CreditCard, label: 'Normal Wallet', value: `$${profile?.normalWallet?.balance ?? 0}`, color: 'from-purple-500 to-purple-600', bgColor: 'bg-purple-50', iconColor: 'text-purple-600' },
+    { icon: Wallet, label: 'Investment Wallet', value: `$${formatNumber(profile?.investmentWallet?.balance)}`, color: 'from-emerald-500 to-emerald-600', bgColor: 'bg-emerald-50', iconColor: 'text-emerald-600' },
+    { icon: CreditCard, label: 'Normal Wallet', value: `$${formatNumber(profile?.normalWallet?.balance)}`, color: 'from-purple-500 to-purple-600', bgColor: 'bg-purple-50', iconColor: 'text-purple-600' },
     { icon: Crown, label: 'VIP Level', value: `${profile?.referralLevel ?? '-'}`, color: 'from-yellow-500 to-orange-500', bgColor: 'bg-yellow-50', iconColor: 'text-yellow-600' },
     { icon: Clock, label: 'Member Since', value: profile?.createdAt ? new Date(profile.createdAt).toLocaleDateString() : '-', color: 'from-orange-500 to-orange-600', bgColor: 'bg-orange-50', iconColor: 'text-orange-600' },
   ];
 
   const performanceItems = [
-    { label: "Today's Income", value: `$${profile?.dailyIncome?.todayEarned ?? 0}`, color: 'text-emerald-600', bgColor: 'bg-emerald-100', icon: Star },
-    { label: 'Total Earned', value: `$${profile?.dailyIncome?.totalEarned ?? 0}`, color: 'text-blue-600', bgColor: 'bg-blue-100', icon: BarChart3 },
-    { label: 'Potential Daily Income', value: `$${profile?.potentialDailyIncome ?? 0}`, color: 'text-purple-600', bgColor: 'bg-purple-100', icon: Crown },
+    { label: "Today's Income", value: `$${formatNumber(profile?.dailyIncome?.todayEarned)}`, color: 'text-emerald-600', bgColor: 'bg-emerald-100', icon: Star },
+    { label: 'Total Earned', value: `$${formatNumber(profile?.dailyIncome?.totalEarned)}`, color: 'text-blue-600', bgColor: 'bg-blue-100', icon: BarChart3 },
+    { label: 'Potential Daily Income', value: `$${formatNumber(profile?.potentialDailyIncome)}`, color: 'text-purple-600', bgColor: 'bg-purple-100', icon: Crown },
     { label: 'Can Claim Today', value: profile?.canClaimDailyIncome ? 'Yes' : 'No', color: profile?.canClaimDailyIncome ? 'text-emerald-600' : 'text-gray-500', bgColor: 'bg-indigo-100', icon: Shield },
   ];
 
@@ -340,7 +346,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ profile, onLogout }) => {
             <div className="bg-white rounded-xl p-4 shadow">
               <div className="font-semibold text-gray-700 mb-2 text-sm sm:text-base">First Deposit Bonus</div>
               <div>Status: <b>{profile?.firstDepositBonus?.hasReceived ? 'Received' : 'Not Received'}</b></div>
-              <div>Amount: <b>${profile?.firstDepositBonus?.amount ?? 0}</b></div>
+              <div>Amount: <b>${formatNumber(profile?.firstDepositBonus?.amount)}</b></div>
               <div>Percentage: <b>{profile?.firstDepositBonus?.percentage ?? 0}%</b></div>
               <div>Received At: <b>{profile?.firstDepositBonus?.receivedAt ? new Date(profile.firstDepositBonus.receivedAt).toLocaleString() : '-'}</b></div>
             </div>
@@ -352,8 +358,8 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ profile, onLogout }) => {
             </div>
             <div className="bg-white rounded-xl p-4 shadow">
               <div className="font-semibold text-gray-700 mb-2 text-sm sm:text-base">Daily Income</div>
-              <div>Today: <b>${profile?.dailyIncome?.todayEarned ?? 0}</b></div>
-              <div>Total Earned: <b>${profile?.dailyIncome?.totalEarned ?? 0}</b></div>
+              <div>Today: <b>${formatNumber(profile?.dailyIncome?.todayEarned)}</b></div>
+              <div>Total Earned: <b>${formatNumber(profile?.dailyIncome?.totalEarned)}</b></div>
               <div>Last Claimed: <b>{profile?.dailyIncome?.lastClaimed ? new Date(profile.dailyIncome.lastClaimed).toLocaleString() : '-'}</b></div>
               <div>Can Claim: <b className={profile?.canClaimDailyIncome ? 'text-emerald-600' : 'text-gray-500'}>{profile?.canClaimDailyIncome ? 'Yes' : 'No'}</b></div>
             </div>
