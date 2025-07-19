@@ -327,7 +327,7 @@ const LevelsStatusPage: React.FC = () => {
           </div>
 
           {/* Level Progress Section */}
-          {levelProgress && (
+          {levelProgress && levelProgress.digitLevel && levelProgress.characterLevel && (
             <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-6 sm:p-8 shadow-xl border border-white/50 mb-8">
               <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4 mb-6">
                 <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
@@ -356,36 +356,36 @@ const LevelsStatusPage: React.FC = () => {
                   <div className="mb-4">
                     <div className="flex justify-between text-sm mb-2">
                       <span className="text-purple-700">Next Level: {levelProgress.digitLevel.nextLevel}</span>
-                      <span className="font-semibold text-purple-800">{levelProgress.digitLevel.nextLevelRequirements.progress.overall}%</span>
+                      <span className="font-semibold text-purple-800">{levelProgress.digitLevel.nextLevelRequirements?.progress?.overall || 0}%</span>
                     </div>
                     <div className="w-full bg-purple-200 rounded-full h-3">
                       <div 
                         className="bg-gradient-to-r from-purple-500 to-purple-600 h-3 rounded-full transition-all duration-500"
-                        style={{ width: `${levelProgress.digitLevel.nextLevelRequirements.progress.overall}%` }}
+                        style={{ width: `${levelProgress.digitLevel.nextLevelRequirements?.progress?.overall || 0}%` }}
                       ></div>
                     </div>
                     <div className="grid grid-cols-2 gap-4 mt-3 text-xs">
                       <div>
                         <div className="flex justify-between text-purple-700">
                           <span>Members:</span>
-                          <span>{levelProgress.digitLevel.nextLevelRequirements.current.members}/{levelProgress.digitLevel.nextLevelRequirements.requirements.members}</span>
+                          <span>{levelProgress.digitLevel.nextLevelRequirements?.current?.members || 0}/{levelProgress.digitLevel.nextLevelRequirements?.requirements?.members || 0}</span>
                         </div>
                         <div className="w-full bg-purple-200 rounded-full h-2 mt-1">
                           <div 
                             className="bg-purple-500 h-2 rounded-full transition-all duration-500"
-                            style={{ width: `${levelProgress.digitLevel.nextLevelRequirements.progress.members}%` }}
+                            style={{ width: `${levelProgress.digitLevel.nextLevelRequirements?.progress?.members || 0}%` }}
                           ></div>
                         </div>
                       </div>
                       <div>
                         <div className="flex justify-between text-purple-700">
                           <span>Wallet:</span>
-                          <span>${levelProgress.digitLevel.nextLevelRequirements.current.wallet.toFixed(0)}/${levelProgress.digitLevel.nextLevelRequirements.requirements.wallet}</span>
+                          <span>${(levelProgress.digitLevel.nextLevelRequirements?.current?.wallet || 0).toFixed(0)}/${levelProgress.digitLevel.nextLevelRequirements?.requirements?.wallet || 0}</span>
                         </div>
                         <div className="w-full bg-purple-200 rounded-full h-2 mt-1">
                           <div 
                             className="bg-purple-500 h-2 rounded-full transition-all duration-500"
-                            style={{ width: `${levelProgress.digitLevel.nextLevelRequirements.progress.wallet}%` }}
+                            style={{ width: `${levelProgress.digitLevel.nextLevelRequirements?.progress?.wallet || 0}%` }}
                           ></div>
                         </div>
                       </div>
@@ -395,7 +395,7 @@ const LevelsStatusPage: React.FC = () => {
                   {/* All Levels Progress */}
                   <div className="space-y-3">
                     <h4 className="font-semibold text-purple-800 text-sm">All Levels:</h4>
-                    {Object.entries(levelProgress.digitLevel.levels).map(([level, data]: [string, any]) => (
+                    {Object.entries(levelProgress.digitLevel.levels || {}).map(([level, data]: [string, any]) => (
                       <div key={level} className="bg-white/50 rounded-lg p-3">
                         <div className="flex justify-between items-center mb-2">
                           <span className="text-purple-700 text-sm font-medium">{data.name}</span>
@@ -432,25 +432,25 @@ const LevelsStatusPage: React.FC = () => {
                   
                   {/* Next Level Progress */}
                   <div className="mb-4">
-                    <div className="flex justify-between text-sm mb-2">
-                      <span className="text-orange-700">Next Level: {levelProgress.characterLevel.nextLevel}</span>
-                      <span className="font-semibold text-orange-800">{levelProgress.characterLevel.nextLevelRequirements.progress}%</span>
-                    </div>
+                                            <div className="flex justify-between text-sm mb-2">
+                          <span className="text-orange-700">Next Level: {levelProgress.characterLevel.nextLevel}</span>
+                          <span className="font-semibold text-orange-800">{levelProgress.characterLevel.nextLevelRequirements?.progress || 0}%</span>
+                        </div>
                     <div className="w-full bg-orange-200 rounded-full h-3">
                       <div 
                         className="bg-gradient-to-r from-orange-500 to-orange-600 h-3 rounded-full transition-all duration-500"
-                        style={{ width: `${levelProgress.characterLevel.nextLevelRequirements.progress}%` }}
+                        style={{ width: `${levelProgress.characterLevel.nextLevelRequirements?.progress || 0}%` }}
                       ></div>
                     </div>
                     <div className="text-xs text-orange-600 mt-2">
-                      {levelProgress.characterLevel.nextLevelRequirements.description}
+                      {levelProgress.characterLevel.nextLevelRequirements?.description || 'No description available'}
                     </div>
                   </div>
 
                   {/* All Levels Progress */}
                   <div className="space-y-3">
                     <h4 className="font-semibold text-orange-800 text-sm">All Levels:</h4>
-                    {Object.entries(levelProgress.characterLevel.levels).map(([level, data]: [string, any]) => (
+                    {Object.entries(levelProgress.characterLevel.levels || {}).map(([level, data]: [string, any]) => (
                       <div key={level} className="bg-white/50 rounded-lg p-3">
                         <div className="flex justify-between items-center mb-2">
                           <span className="text-orange-700 text-sm font-medium">{data.name}</span>
@@ -479,19 +479,19 @@ const LevelsStatusPage: React.FC = () => {
               <div className="mt-6 bg-gradient-to-r from-emerald-50 to-emerald-100 rounded-xl p-4 border border-emerald-200">
                 <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 text-center">
                   <div>
-                    <div className="text-2xl font-bold text-emerald-800">{levelProgress.summary.currentDigitLevel}</div>
+                    <div className="text-2xl font-bold text-emerald-800">{levelProgress.summary?.currentDigitLevel || 'N/A'}</div>
                     <div className="text-xs text-emerald-600">Current Digit Level</div>
                   </div>
                   <div>
-                    <div className="text-2xl font-bold text-emerald-800">{levelProgress.summary.currentCharacterLevel}</div>
+                    <div className="text-2xl font-bold text-emerald-800">{levelProgress.summary?.currentCharacterLevel || 'N/A'}</div>
                     <div className="text-xs text-emerald-600">Current Character Level</div>
                   </div>
                   <div>
-                    <div className="text-2xl font-bold text-emerald-800">{levelProgress.summary.totalLevelsAchieved}</div>
+                    <div className="text-2xl font-bold text-emerald-800">{levelProgress.summary?.totalLevelsAchieved || 0}</div>
                     <div className="text-xs text-emerald-600">Levels Achieved</div>
                   </div>
                   <div>
-                    <div className="text-2xl font-bold text-emerald-800">{levelProgress.summary.nextMilestone}</div>
+                    <div className="text-2xl font-bold text-emerald-800">{levelProgress.summary?.nextMilestone || 'N/A'}</div>
                     <div className="text-xs text-emerald-600">Next Milestone</div>
                   </div>
                 </div>
