@@ -410,7 +410,7 @@ function App() {
             <span className="text-xs leading-tight font-medium">Home</span>
           </button>
           
-          <button
+          {/* <button
             onClick={() => setCurrentPage('my-investments')}
             className={`flex flex-col items-center justify-center py-1 px-2 min-w-0 flex-1 transition-colors ${
               currentPage === 'my-investments' || currentPage === 'hotel-detail' ? 'text-blue-600' : 'text-gray-600'
@@ -418,7 +418,7 @@ function App() {
           >
             <Building2 className="w-6 h-6 mb-1 flex-shrink-0" />
             <span className="text-xs leading-tight text-center font-medium">My Investments</span>
-          </button>
+          </button> */}
           
           <button
             onClick={() => setCurrentPage('teams')}

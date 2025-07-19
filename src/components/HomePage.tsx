@@ -200,17 +200,7 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
   const handleLevelIncomeClaim = async () => {
     setDailySignInLoading(true);
     try {
-      // First claim daily income
-      const dailyRes = await fetch('https://api.goalsbot.com/users/today-my-income', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
-          'Content-Type': 'application/json',
-        },
-      });
-      const dailyData = await dailyRes.json();
-      
-      // Then claim team income
+      // Claim team income only
       const teamRes = await fetch('https://api.goalsbot.com/users/claim-team-income', {
         method: 'POST',
         headers: {
@@ -220,19 +210,18 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
       });
       const teamData = await teamRes.json();
       
-      const dailySuccess = dailyData.success;
       const teamSuccess = teamData.success;
       
       await Swal.fire({
-        icon: (dailySuccess && teamSuccess) ? undefined : 'error',
-        title: (dailySuccess && teamSuccess) ? '🎉 Level & Team Income Claimed!' : 'Partial Success',
-        text: (dailySuccess && teamSuccess) 
-          ? `Daily Income: ${dailyData.message || 'Claimed successfully!'}\nTeam Income: ${teamData.message || 'Claimed successfully!'}`
-          : `Daily Income: ${dailySuccess ? 'Success' : 'Failed'}\nTeam Income: ${teamSuccess ? 'Success' : 'Failed'}`,
+        icon: teamSuccess ? undefined : 'error',
+        title: teamSuccess ? '🎉 Team Income Claimed!' : 'Oops!',
+        text: teamSuccess
+          ? (teamData.message || 'You have successfully claimed your team income!')
+          : (teamData.message || 'Failed to claim team income.'),
         background: 'linear-gradient(135deg, #f0f4ff 0%, #e0ffe7 100%)',
         color: '#222',
-        confirmButtonColor: (dailySuccess && teamSuccess) ? '#22c55e' : '#ef4444',
-        confirmButtonText: (dailySuccess && teamSuccess) ? 'Awesome!' : 'OK',
+        confirmButtonColor: teamSuccess ? '#22c55e' : '#ef4444',
+        confirmButtonText: teamSuccess ? 'Awesome!' : 'OK',
         customClass: {
           popup: 'swal2-border-radius',
           title: 'swal2-title-bold',
@@ -412,7 +401,7 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
     amount: '',
     paymentMethod: 'crypto',
     paymentId: '',
-    walletType: 'investment',
+    walletType: 'normal',
     paymentProof: null as File | null,
   });
   const [withdrawalForm, setWithdrawalForm] = useState({
@@ -496,7 +485,7 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
       });
       setDepositSuccess('Deposit request submitted!');
       setShowDepositModal(false);
-      setDepositForm({ amount: '', paymentMethod: 'crypto', paymentId: '', walletType: 'investment', paymentProof: null });
+      setDepositForm({ amount: '', paymentMethod: 'crypto', paymentId: '', walletType: 'normal', paymentProof: null });
     } catch (err: any) {
       setDepositError(err.message || 'Failed to submit deposit.');
     } finally {
@@ -712,7 +701,7 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
               <div className="text-xs sm:text-sm text-gray-600 font-medium">Total Income</div>
             </div>
           </div>
-          <div className="group bg-white/80 backdrop-blur-xl rounded-2xl p-4 sm:p-5 shadow-xl border border-white/50 hover:shadow-2xl hover:bg-white/90 transition-all duration-300 hover:-translate-y-1">
+          {/* <div className="group bg-white/80 backdrop-blur-xl rounded-2xl p-4 sm:p-5 shadow-xl border border-white/50 hover:shadow-2xl hover:bg-white/90 transition-all duration-300 hover:-translate-y-1">
             <div className="flex flex-col items-center text-center space-y-2 sm:space-y-3">
               <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-lg">
                 <Crown className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
@@ -720,8 +709,8 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
               <div className="text-xl sm:text-2xl font-bold text-purple-600 mb-1">Level {userStats?.referralLevel || 0}</div>
               <div className="text-xs sm:text-sm text-gray-600 font-medium">VIP Level</div>
             </div>
-          </div>
-          <div className="group bg-white/80 backdrop-blur-xl rounded-2xl p-4 sm:p-5 shadow-xl border border-white/50 hover:shadow-2xl hover:bg-white/90 transition-all duration-300 hover:-translate-y-1">
+          </div> */}
+          {/* <div className="group bg-white/80 backdrop-blur-xl rounded-2xl p-4 sm:p-5 shadow-xl border border-white/50 hover:shadow-2xl hover:bg-white/90 transition-all duration-300 hover:-translate-y-1">
             <div className="flex flex-col items-center text-center space-y-2 sm:space-y-3">
               <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-indigo-500 to-indigo-700 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-lg">
                 <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -736,7 +725,7 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
                 You can use this balance for investment purposes.
               </div>
             </div>
-          </div>
+          </div> */}
           {/* New Normal Wallet Balance Card */}
           <div className="group bg-white/80 backdrop-blur-xl rounded-2xl p-4 sm:p-5 shadow-xl border border-white/50 hover:shadow-2xl hover:bg-white/90 transition-all duration-300 hover:-translate-y-1">
             <div className="flex flex-col items-center text-center space-y-2 sm:space-y-3">
@@ -761,14 +750,14 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
                   <Calendar className="w-5 h-5 text-white" />
                 </div>
                 <div className="min-w-0">
-                  <h3 className="font-semibold text-gray-800 text-lg">Daily Sign-in</h3>
+                  <h3 className="font-semibold text-gray-800 text-lg">Daily Level Income</h3>
                   <p className="text-sm text-gray-600">Claim your daily rewards</p>
                 </div>
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Daily Bonus Card */}
-              <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 rounded-xl p-4 border border-emerald-200">
+              {/* <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 rounded-xl p-4 border border-emerald-200">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center space-x-3">
                     <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center">
@@ -797,7 +786,7 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
                     'Claim Daily'
                   )}
                 </button>
-              </div>
+              </div> */}
               
               {/* Level Bonus Card */}
               <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl p-4 border border-blue-200">
@@ -808,7 +797,7 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
                     </div>
                     <div>
                       <div className="font-semibold text-blue-800">Level Bonus</div>
-                      <div className="text-sm text-blue-600">Level {userStats?.referralLevel || 0} rewards</div>
+                      {/* <div className="text-sm text-blue-600">Level {userStats?.referralLevel || 0} rewards</div> */}
                     </div>
                   </div>
                 </div>
@@ -1244,8 +1233,7 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
                   className="w-full border rounded px-3 py-2 text-base"
                   required
                 >
-                  <option value="investment">Investment</option>
-                  <option value="normal">Normal</option>
+                  <option value="normal">Normal Wallet</option>
                 </select>
               </div>
               <div>

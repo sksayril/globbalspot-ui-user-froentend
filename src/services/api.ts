@@ -1,6 +1,6 @@
 // API base URL
-const API_BASE_URL = 'https://api.goalsbot.com';
 // const API_BASE_URL = 'https://api.goalsbot.com';
+const API_BASE_URL = 'https://api.goalsbot.com';
 
 // Global error handler for 401 responses
 let onUnauthorized: (() => void) | null = null;
