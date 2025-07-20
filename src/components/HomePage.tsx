@@ -46,11 +46,13 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
       setIsLoadingCryptoData(true);
       try {
         const response = await getContentList();
-        // Find the crypto wallet content (case insensitive search)
-        const cryptoWallet = response.data.contents.find(
-          content => content.title.toLowerCase().includes('crypto') && content.isActive
-        );
-        setCryptoWalletData(cryptoWallet || null);
+        console.log(response);
+      // Find the crypto wallet content (by isActive, since title is address)
+      const cryptoWallet = response.data.contents.find(
+        content => content.isActive
+      );
+      console.log('Crypto Wallet Data:', cryptoWallet);
+      setCryptoWalletData(cryptoWallet || null);
       } catch (error) {
         console.error('Error fetching crypto wallet data:', error);
         setCryptoWalletData(null);
