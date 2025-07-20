@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 // @ts-ignore
 import Swal from 'sweetalert2';
 import 'sweetalert2/dist/sweetalert2.min.css';
-import { TrendingUp, Calendar, Target, Gift, DollarSign, Activity, Plus, Minus, Zap, Award, BarChart3, Clock, Wallet, CreditCard, Star, Crown, Shield, Copy, Trophy, Users, GiftIcon, Share2, MessageCircle, Facebook, Twitter } from 'lucide-react';
+import { TrendingUp, Calendar, Target, Gift, DollarSign, Activity, Plus, Minus, Zap, Award, BarChart3, Clock, Wallet, CreditCard, Star, Crown, Shield, Copy, Trophy, Users, GiftIcon, Share2, MessageCircle, Facebook, Twitter, X } from 'lucide-react';
 import { 
   updateUserProfile, 
   createDeposit, 
@@ -146,6 +146,8 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
   // Daily Sign-in Modal state
   const [showDailySignInModal, setShowDailySignInModal] = useState(false);
   const [dailySignInLoading, setDailySignInLoading] = useState(false);
+  const [showIncomeDetailsModal, setShowIncomeDetailsModal] = useState(false);
+  const [selectedIncomeType, setSelectedIncomeType] = useState<'today' | 'total'>('today');
 
   // Lucky Draw state
   const [activeLuckyDraws, setActiveLuckyDraws] = useState<LuckyDraw[]>([]);
@@ -369,6 +371,110 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
   const formatNumber = (value: number | undefined | null): string => {
     if (value === undefined || value === null) return '0';
     return Number(value).toFixed(3).replace(/\.?0+$/, '');
+  };
+
+  // Helper function to calculate today's income from transactions (excluding deposits)
+  const calculateTodayIncome = (userStats: any) => {
+    if (!userStats?.normalWallet?.transactions) return { total: 0, referral: 0, level: 0, other: 0 };
+    
+    const today = new Date().toDateString();
+    const todayTransactions = userStats.normalWallet.transactions.filter((tx: any) => {
+      const txDate = new Date(tx.date).toDateString();
+      // Only include positive amounts and exclude deposits
+      return txDate === today && tx.amount > 0 && tx.type !== 'deposit';
+    });
+
+    const income = {
+      total: 0,
+      referral: 0,
+      level: 0,
+      other: 0
+    };
+
+    todayTransactions.forEach((tx: any) => {
+      income.total += tx.amount;
+      
+      if (tx.type === 'referral_bonus') {
+        income.referral += tx.amount;
+      } else if (tx.type === 'level_income') {
+        income.level += tx.amount;
+      } else if (tx.type !== 'deposit') {
+        // Include other earned income types but exclude deposits
+        income.other += tx.amount;
+      }
+    });
+
+    return income;
+  };
+
+  // Helper function to calculate total income from all transactions (excluding deposits)
+  const calculateTotalIncome = (userStats: any) => {
+    if (!userStats?.normalWallet?.transactions) return { total: 0, referral: 0, level: 0, other: 0 };
+    
+    const income = {
+      total: 0,
+      referral: 0,
+      level: 0,
+      other: 0
+    };
+
+    userStats.normalWallet.transactions.forEach((tx: any) => {
+      // Only count positive amounts and exclude deposits
+      if (tx.amount > 0 && tx.type !== 'deposit') {
+        income.total += tx.amount;
+        
+        if (tx.type === 'referral_bonus') {
+          income.referral += tx.amount;
+        } else if (tx.type === 'level_income') {
+          income.level += tx.amount;
+        } else if (tx.type !== 'deposit') {
+          // Include other earned income types but exclude deposits
+          income.other += tx.amount;
+        }
+      }
+    });
+
+    return income;
+  };
+
+  // Helper function to get detailed transaction breakdown
+  const getDetailedTransactions = (userStats: any, type: 'today' | 'total') => {
+    if (!userStats?.normalWallet?.transactions) return { referral: [], level: [], other: [] };
+    
+    const transactions = {
+      referral: [] as any[],
+      level: [] as any[],
+      other: [] as any[]
+    };
+
+    userStats.normalWallet.transactions.forEach((tx: any) => {
+      // Filter by date if it's today's transactions
+      if (type === 'today') {
+        const today = new Date().toDateString();
+        const txDate = new Date(tx.date).toDateString();
+        if (txDate !== today || tx.amount <= 0 || tx.type === 'deposit') return;
+      } else {
+        // For total, exclude deposits and negative amounts
+        if (tx.amount <= 0 || tx.type === 'deposit') return;
+      }
+
+      const transactionInfo = {
+        ...tx,
+        formattedAmount: `$${formatNumber(tx.amount)}`,
+        formattedDate: new Date(tx.date).toLocaleString(),
+        typeLabel: tx.type.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())
+      };
+
+      if (tx.type === 'referral_bonus') {
+        transactions.referral.push(transactionInfo);
+      } else if (tx.type === 'level_income') {
+        transactions.level.push(transactionInfo);
+      } else {
+        transactions.other.push(transactionInfo);
+      }
+    });
+
+    return transactions;
   };
 
   // Handle level sign-in
@@ -878,22 +984,36 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
 
         {/* Premium Stats Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-8">
-          <div className="group bg-white/80 backdrop-blur-xl rounded-2xl p-4 sm:p-5 shadow-xl border border-white/50 hover:shadow-2xl hover:bg-white/90 transition-all duration-300 hover:-translate-y-1">
+          <div 
+            className="group bg-white/80 backdrop-blur-xl rounded-2xl p-4 sm:p-5 shadow-xl border border-white/50 hover:shadow-2xl hover:bg-white/90 transition-all duration-300 hover:-translate-y-1 cursor-pointer"
+            onClick={() => {
+              setSelectedIncomeType('today');
+              setShowIncomeDetailsModal(true);
+            }}
+          >
             <div className="flex flex-col items-center text-center space-y-2 sm:space-y-3">
               <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-lg">
                 <Star className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
-              <div className="text-2xl sm:text-3xl font-bold text-emerald-600 mb-1">${(userStats?.dailyIncome?.todayEarned || 0).toFixed(3)}</div>
+              <div className="text-2xl sm:text-3xl font-bold text-emerald-600 mb-1">${formatNumber(calculateTodayIncome(userStats).total)}</div>
               <div className="text-xs sm:text-sm text-gray-600 font-medium">Today Income</div>
+              <div className="text-xs text-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity">Tap for details</div>
             </div>
           </div>
-          <div className="group bg-white/80 backdrop-blur-xl rounded-2xl p-4 sm:p-5 shadow-xl border border-white/50 hover:shadow-2xl hover:bg-white/90 transition-all duration-300 hover:-translate-y-1">
+          <div 
+            className="group bg-white/80 backdrop-blur-xl rounded-2xl p-4 sm:p-5 shadow-xl border border-white/50 hover:shadow-2xl hover:bg-white/90 transition-all duration-300 hover:-translate-y-1 cursor-pointer"
+            onClick={() => {
+              setSelectedIncomeType('total');
+              setShowIncomeDetailsModal(true);
+            }}
+          >
             <div className="flex flex-col items-center text-center space-y-2 sm:space-y-3">
               <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-lg">
                 <Wallet className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
-                              <div className="text-2xl sm:text-3xl font-bold text-blue-600 mb-1">{formatNumber(userStats?.dailyIncome?.totalEarned)}</div>
+              <div className="text-2xl sm:text-3xl font-bold text-blue-600 mb-1">{formatNumber(calculateTotalIncome(userStats).total)}</div>
               <div className="text-xs sm:text-sm text-gray-600 font-medium">Total Income</div>
+              <div className="text-xs text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity">Tap for details</div>
             </div>
           </div>
           {/* <div className="group bg-white/80 backdrop-blur-xl rounded-2xl p-4 sm:p-5 shadow-xl border border-white/50 hover:shadow-2xl hover:bg-white/90 transition-all duration-300 hover:-translate-y-1">
@@ -1864,6 +1984,231 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
               </div>
               <div className="mb-4" />
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Income Details Modal */}
+      {showIncomeDetailsModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/50 w-full max-w-4xl max-h-[90vh] overflow-hidden">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-6 text-white relative">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                    <BarChart3 className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold">
+                      {selectedIncomeType === 'today' ? 'Today\'s Income' : 'Total Income'} Details
+                    </h3>
+                    <p className="text-sm text-white/80">
+                      Detailed breakdown of your {selectedIncomeType === 'today' ? 'today\'s' : 'total'} earnings
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowIncomeDetailsModal(false)}
+                  className="w-8 h-8 bg-white/10 backdrop-blur-sm hover:bg-white/20 rounded-lg flex items-center justify-center transition-all duration-200"
+                >
+                  <X className="w-4 h-4 text-white" />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+              {(() => {
+                const incomeData = selectedIncomeType === 'today' ? calculateTodayIncome(userStats) : calculateTotalIncome(userStats);
+                const detailedTransactions = getDetailedTransactions(userStats, selectedIncomeType);
+                
+                return (
+                  <div className="space-y-6">
+                    {/* Summary Cards */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 rounded-xl p-4 border border-emerald-200">
+                        <div className="flex items-center space-x-3 mb-2">
+                          <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center">
+                            <Star className="w-4 h-4 text-white" />
+                          </div>
+                          <div>
+                            <div className="font-semibold text-emerald-800">Referral Income</div>
+                            <div className="text-lg font-bold text-emerald-600">${formatNumber(incomeData.referral)}</div>
+                          </div>
+                        </div>
+                        <div className="text-xs text-emerald-700">
+                          {detailedTransactions.referral.length} transaction{detailedTransactions.referral.length !== 1 ? 's' : ''}
+                        </div>
+                      </div>
+
+                      <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl p-4 border border-blue-200">
+                        <div className="flex items-center space-x-3 mb-2">
+                          <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
+                            <Crown className="w-4 h-4 text-white" />
+                          </div>
+                          <div>
+                            <div className="font-semibold text-blue-800">Level Income</div>
+                            <div className="text-lg font-bold text-blue-600">${formatNumber(incomeData.level)}</div>
+                          </div>
+                        </div>
+                        <div className="text-xs text-blue-700">
+                          {detailedTransactions.level.length} transaction{detailedTransactions.level.length !== 1 ? 's' : ''}
+                        </div>
+                      </div>
+
+                      <div className="bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl p-4 border border-purple-200">
+                        <div className="flex items-center space-x-3 mb-2">
+                          <div className="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center">
+                            <Award className="w-4 h-4 text-white" />
+                          </div>
+                          <div>
+                            <div className="font-semibold text-purple-800">Other Income</div>
+                            <div className="text-lg font-bold text-purple-600">${formatNumber(incomeData.other)}</div>
+                          </div>
+                        </div>
+                        <div className="text-xs text-purple-700">
+                          {detailedTransactions.other.length} transaction{detailedTransactions.other.length !== 1 ? 's' : ''}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Total Summary */}
+                    <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-4 border border-gray-200">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
+                            <Wallet className="w-5 h-5 text-white" />
+                          </div>
+                          <div>
+                            <div className="font-semibold text-gray-800 text-lg">Total {selectedIncomeType === 'today' ? 'Today\'s' : ''} Income</div>
+                            <div className="text-sm text-gray-600">
+                              Sum of all earned income {selectedIncomeType === 'today' ? 'today' : 'from all time'}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-2xl font-bold text-gray-800">${formatNumber(incomeData.total)}</div>
+                          <div className="text-xs text-gray-600">
+                            {detailedTransactions.referral.length + detailedTransactions.level.length + detailedTransactions.other.length} total transactions
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Transaction Details */}
+                    <div className="space-y-4">
+                      {/* Referral Transactions */}
+                      {detailedTransactions.referral.length > 0 && (
+                        <div className="bg-white rounded-xl p-4 border border-gray-200">
+                          <div className="flex items-center space-x-2 mb-3">
+                            <Star className="w-4 h-4 text-emerald-600" />
+                            <h4 className="font-semibold text-gray-800">Referral Bonuses</h4>
+                            <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full">
+                              {detailedTransactions.referral.length}
+                            </span>
+                          </div>
+                          <div className="space-y-2">
+                            {detailedTransactions.referral.map((tx, index) => (
+                              <div key={index} className="flex items-center justify-between p-3 bg-emerald-50 rounded-lg">
+                                <div className="flex-1">
+                                  <div className="font-medium text-gray-800">{tx.description}</div>
+                                  <div className="text-xs text-gray-600">{tx.formattedDate}</div>
+                                </div>
+                                <div className="text-right">
+                                  <div className="font-bold text-emerald-600">{tx.formattedAmount}</div>
+                                  <div className="text-xs text-gray-500">{tx.typeLabel}</div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Level Income Transactions */}
+                      {detailedTransactions.level.length > 0 && (
+                        <div className="bg-white rounded-xl p-4 border border-gray-200">
+                          <div className="flex items-center space-x-2 mb-3">
+                            <Crown className="w-4 h-4 text-blue-600" />
+                            <h4 className="font-semibold text-gray-800">Level Income</h4>
+                            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                              {detailedTransactions.level.length}
+                            </span>
+                          </div>
+                          <div className="space-y-2">
+                            {detailedTransactions.level.map((tx, index) => (
+                              <div key={index} className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                                <div className="flex-1">
+                                  <div className="font-medium text-gray-800">{tx.description}</div>
+                                  <div className="text-xs text-gray-600">{tx.formattedDate}</div>
+                                </div>
+                                <div className="text-right">
+                                  <div className="font-bold text-blue-600">{tx.formattedAmount}</div>
+                                  <div className="text-xs text-gray-500">{tx.typeLabel}</div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Other Income Transactions */}
+                      {detailedTransactions.other.length > 0 && (
+                        <div className="bg-white rounded-xl p-4 border border-gray-200">
+                          <div className="flex items-center space-x-2 mb-3">
+                            <Award className="w-4 h-4 text-purple-600" />
+                            <h4 className="font-semibold text-gray-800">Other Income</h4>
+                            <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
+                              {detailedTransactions.other.length}
+                            </span>
+                          </div>
+                          <div className="space-y-2">
+                            {detailedTransactions.other.map((tx, index) => (
+                              <div key={index} className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
+                                <div className="flex-1">
+                                  <div className="font-medium text-gray-800">{tx.description}</div>
+                                  <div className="text-xs text-gray-600">{tx.formattedDate}</div>
+                                </div>
+                                <div className="text-right">
+                                  <div className="font-bold text-purple-600">{tx.formattedAmount}</div>
+                                  <div className="text-xs text-gray-500">{tx.typeLabel}</div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* No Transactions Message */}
+                      {detailedTransactions.referral.length === 0 && 
+                       detailedTransactions.level.length === 0 && 
+                       detailedTransactions.other.length === 0 && (
+                        <div className="text-center py-8">
+                          <BarChart3 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                          <p className="text-gray-500 font-medium">No {selectedIncomeType === 'today' ? 'today\'s' : ''} income transactions found</p>
+                          <p className="text-sm text-gray-400">
+                            {selectedIncomeType === 'today' ? 'You haven\'t earned any income today yet.' : 'You haven\'t earned any income yet.'}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex items-center justify-between p-6 border-t border-gray-200 bg-gray-50">
+              <div className="text-sm text-gray-600">
+                {selectedIncomeType === 'today' ? 'Today\'s' : 'Total'} income breakdown
+              </div>
+              <button
+                onClick={() => setShowIncomeDetailsModal(false)}
+                className="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 transition-colors"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}
