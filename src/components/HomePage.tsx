@@ -48,11 +48,11 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
         const response = await getContentList();
         console.log(response);
       // Find the crypto wallet content (by isActive, since title is address)
-      const cryptoWallet = response.data.contents.find(
+        const cryptoWallet = response.data.contents.find(
         content => content.isActive
-      );
+        );
       console.log('Crypto Wallet Data:', cryptoWallet);
-      setCryptoWalletData(cryptoWallet || null);
+        setCryptoWalletData(cryptoWallet || null);
       } catch (error) {
         console.error('Error fetching crypto wallet data:', error);
         setCryptoWalletData(null);
@@ -225,11 +225,61 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
   };
 
   // Claim level income
+  // Toast notification function
+  const showToast = (type: 'success' | 'error' | 'info' | 'warning', message: string) => {
+    const toast = document.createElement('div');
+    toast.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg transform transition-all duration-300 translate-x-full`;
+    
+    const colors = {
+      success: 'bg-gradient-to-r from-green-400 to-emerald-500 text-white',
+      error: 'bg-gradient-to-r from-red-400 to-pink-500 text-white',
+      info: 'bg-gradient-to-r from-blue-400 to-indigo-500 text-white',
+      warning: 'bg-gradient-to-r from-yellow-400 to-orange-500 text-white'
+    };
+    
+    const icons = {
+      success: '🎉',
+      error: '❌',
+      info: 'ℹ️',
+      warning: '⚠️'
+    };
+    
+    toast.className += ` ${colors[type]}`;
+    toast.innerHTML = `
+      <div class="flex items-center space-x-3">
+        <span class="text-lg">${icons[type]}</span>
+        <span class="font-medium">${message}</span>
+        <button onclick="this.parentElement.parentElement.remove()" class="ml-2 text-white/80 hover:text-white">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+    `;
+    
+    document.body.appendChild(toast);
+    
+    // Animate in
+    setTimeout(() => {
+      toast.classList.remove('translate-x-full');
+    }, 100);
+    
+    // Auto remove after 5 seconds
+    setTimeout(() => {
+      toast.classList.add('translate-x-full');
+      setTimeout(() => {
+        if (toast.parentElement) {
+          toast.remove();
+        }
+      }, 300);
+    }, 5000);
+  };
+
   const handleLevelIncomeClaim = async () => {
     setDailySignInLoading(true);
     try {
       // Claim team income only
-      const teamRes = await fetch('https://api.goalsbot.com/users/claim-level-income', {
+      const teamRes = await fetch('https://api.goalsbot.com/users/claim-team-income', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
@@ -237,19 +287,163 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
         },
       });
       const teamData = await teamRes.json();
-      
       const teamSuccess = teamData.success;
       
+      if (teamSuccess) {
+        // Success case - show attractive success modal
+        await Swal.fire({
+          icon: undefined,
+          title: '🎉 Team Income Claimed Successfully!',
+          html: `
+            <div class="text-center">
+              <div class="w-16 h-16 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+              </div>
+              <p class="text-lg font-semibold text-gray-800 mb-2">Congratulations!</p>
+              <p class="text-gray-600 mb-4">${teamData.message || 'You have successfully claimed your team income!'}</p>
+              <div class="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-3 border border-green-200">
+                <p class="text-sm text-green-700">💰 Your wallet has been updated with the claimed amount</p>
+              </div>
+            </div>
+          `,
+          background: 'linear-gradient(135deg, #f0f9ff 0%, #ecfdf5 100%)',
+          color: '#222',
+          confirmButtonColor: '#10b981',
+          confirmButtonText: '🎊 Awesome!',
+          showConfirmButton: true,
+          showCloseButton: false,
+          allowOutsideClick: false,
+          customClass: {
+            popup: 'swal2-border-radius',
+            title: 'swal2-title-bold',
+            confirmButton: 'swal2-confirm-custom'
+          },
+          showClass: {
+            popup: 'animate__animated animate__bounceIn'
+          },
+          hideClass: {
+            popup: 'animate__animated animate__bounceOut'
+          }
+        });
+        
+        // Show success toast
+        showToast('success', 'Team income claimed successfully! 💰');
+      } else {
+        // Check if it's already claimed today
+        if (teamData.message && teamData.message.toLowerCase().includes('already claimed')) {
+          await Swal.fire({
+            icon: undefined,
+            title: '⏰ Already Claimed Today',
+            html: `
+              <div class="text-center">
+                <div class="w-16 h-16 bg-gradient-to-r from-blue-400 to-indigo-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                </div>
+                <p class="text-lg font-semibold text-gray-800 mb-2">Great Job! 🎯</p>
+                <p class="text-gray-600 mb-4">You've already claimed your team income for today!</p>
+                <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-3 border border-blue-200">
+                  <p class="text-sm text-blue-700">⏰ Come back tomorrow for your next claim</p>
+                  <p class="text-xs text-blue-600 mt-1">Daily reset at midnight</p>
+                </div>
+              </div>
+            `,
+            background: 'linear-gradient(135deg, #eff6ff 0%, #f0f9ff 100%)',
+            color: '#222',
+            confirmButtonColor: '#3b82f6',
+            confirmButtonText: 'Got it! 👍',
+            showConfirmButton: true,
+            showCloseButton: false,
+            allowOutsideClick: false,
+            customClass: {
+              popup: 'swal2-border-radius',
+              title: 'swal2-title-bold',
+              confirmButton: 'swal2-confirm-custom'
+            },
+            showClass: {
+              popup: 'animate__animated animate__fadeInDown'
+            },
+            hideClass: {
+              popup: 'animate__animated animate__fadeOutUp'
+            }
+          });
+          
+          // Show info toast
+          showToast('info', 'Already claimed today! Come back tomorrow ⏰');
+        } else {
+          // Other error case
+          await Swal.fire({
+            icon: undefined,
+            title: '⚠️ Unable to Claim',
+            html: `
+              <div class="text-center">
+                <div class="w-16 h-16 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                  </svg>
+                </div>
+                <p class="text-lg font-semibold text-gray-800 mb-2">Oops! Something went wrong</p>
+                <p class="text-gray-600 mb-4">${teamData.message || 'Failed to claim team income. Please try again.'}</p>
+                <div class="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg p-3 border border-yellow-200">
+                  <p class="text-sm text-yellow-700">🔄 Please try again in a few moments</p>
+                </div>
+              </div>
+            `,
+            background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
+            color: '#222',
+            confirmButtonColor: '#f59e0b',
+            confirmButtonText: 'Try Again 🔄',
+            showConfirmButton: true,
+            showCloseButton: false,
+            allowOutsideClick: false,
+            customClass: {
+              popup: 'swal2-border-radius',
+              title: 'swal2-title-bold',
+              confirmButton: 'swal2-confirm-custom'
+            },
+            showClass: {
+              popup: 'animate__animated animate__shakeX'
+            },
+            hideClass: {
+              popup: 'animate__animated animate__fadeOutUp'
+            }
+          });
+          
+          // Show error toast
+          showToast('error', 'Failed to claim team income. Please try again.');
+        }
+      }
+      
+      setShowDailySignInModal(false);
+      refreshWalletData();
+    } catch (err) {
       await Swal.fire({
-        icon: teamSuccess ? undefined : 'error',
-        title: teamSuccess ? '🎉 Team Income Claimed!' : 'Oops!',
-        text: teamSuccess
-          ? (teamData.message || 'You have successfully claimed your team income!')
-          : (teamData.message || 'Failed to claim team income.'),
-        background: 'linear-gradient(135deg, #f0f4ff 0%, #e0ffe7 100%)',
+        icon: undefined,
+        title: '🌐 Network Error',
+        html: `
+          <div class="text-center">
+            <div class="w-16 h-16 bg-gradient-to-r from-red-400 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+              </svg>
+            </div>
+            <p class="text-lg font-semibold text-gray-800 mb-2">Connection Issue</p>
+            <p class="text-gray-600 mb-4">Please check your internet connection and try again.</p>
+            <div class="bg-gradient-to-r from-red-50 to-pink-50 rounded-lg p-3 border border-red-200">
+              <p class="text-sm text-red-700">📡 Check your internet connection</p>
+            </div>
+          </div>
+        `,
+        background: 'linear-gradient(135deg, #fef2f2 0%, #fce7f3 100%)',
         color: '#222',
-        confirmButtonColor: teamSuccess ? '#22c55e' : '#ef4444',
-        confirmButtonText: teamSuccess ? 'Awesome!' : 'OK',
+        confirmButtonColor: '#ef4444',
+        confirmButtonText: 'Retry 🔄',
+        showConfirmButton: true,
+        showCloseButton: false,
+        allowOutsideClick: false,
         customClass: {
           popup: 'swal2-border-radius',
           title: 'swal2-title-bold',
@@ -262,15 +456,9 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
           popup: 'animate__animated animate__fadeOutUp'
         }
       });
-      setShowDailySignInModal(false);
-      refreshWalletData();
-    } catch (err) {
-      await Swal.fire({
-        icon: 'error',
-        title: 'Network Error',
-        text: 'Please try again.',
-        confirmButtonColor: '#ef4444'
-      });
+      
+      // Show error toast
+      showToast('error', 'Network error. Please check your connection.');
     } finally {
       setDailySignInLoading(false);
     }
@@ -635,10 +823,10 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
       
       const data = await response.json();
       if (data.success) {
-        setWithdrawalSuccess('Withdrawal request submitted successfully!');
-        setShowWithdrawalModal(false);
-        setWithdrawalForm({ amount: '', walletAddress: '' });
-        refreshWalletData();
+      setWithdrawalSuccess('Withdrawal request submitted successfully!');
+      setShowWithdrawalModal(false);
+      setWithdrawalForm({ amount: '', walletAddress: '' });
+      refreshWalletData();
       } else {
         setWithdrawalError(data.message || 'Failed to submit withdrawal request.');
       }
@@ -901,8 +1089,8 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
         </div>
       </div>
 
-              {/* Premium Quick Actions */}
-        <div className="px-4 sm:px-6 mt-0 relative pb-8">
+      {/* Premium Quick Actions */}
+      <div className="px-4 sm:px-6 mt-0 relative pb-8">
           {/* Total Balance Card */}
           <div className="bg-white/90 backdrop-blur-xl rounded-xl p-4 shadow-lg border border-white/60 mb-6">
             <div className="flex items-center justify-between">
@@ -931,56 +1119,56 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-md">
                   <Plus className="w-5 h-5 text-white" />
-                </div>
-                <div className="flex-1 min-w-0">
+              </div>
+              <div className="flex-1 min-w-0">
                   <span className="font-bold text-gray-800 text-base">Deposit</span>
                   <p className="text-xs text-gray-600">Add funds instantly</p>
-                </div>
-                <button
+               </div>
+               <button
                   className="px-3 py-1.5 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-lg hover:from-emerald-600 hover:to-emerald-700 transition-all duration-300 text-xs font-semibold shadow-md hover:shadow-lg"
-                  onClick={() => setShowDepositModal(true)}
-                >
-                  Deposit
-                </button>
-              </div>
-            </div>
+                onClick={() => setShowDepositModal(true)}
+               >
+                 Deposit
+               </button>
+             </div>
+           </div>
             <div className="group bg-white/90 backdrop-blur-xl rounded-xl p-4 shadow-lg border border-white/60 hover:shadow-xl hover:bg-white/95 transition-all duration-300 hover:-translate-y-1">
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-red-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-md">
                   <Minus className="w-5 h-5 text-white" />
-                </div>
-                <div className="flex-1 min-w-0">
+              </div>
+              <div className="flex-1 min-w-0">
                   <span className="font-bold text-gray-800 text-base">Withdraw</span>
                   <p className="text-xs text-gray-600">Withdraw to your wallet</p>
-                </div>
-                <button
-                  onClick={() => setShowWithdrawalModal(true)}
-                  className="px-3 py-1.5 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-300 text-xs font-semibold shadow-md hover:shadow-lg"
-                >
-                  Withdraw
-                </button>
               </div>
+              <button
+                onClick={() => setShowWithdrawalModal(true)}
+                  className="px-3 py-1.5 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-300 text-xs font-semibold shadow-md hover:shadow-lg"
+              >
+                Withdraw
+              </button>
             </div>
+          </div>
             <div className="group bg-white/90 backdrop-blur-xl rounded-xl p-4 shadow-lg border border-white/60 hover:shadow-xl hover:bg-white/95 transition-all duration-300 hover:-translate-y-1">
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-md">
                   <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                     <path d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
                   </svg>
-                </div>
-                <div className="flex-1 min-w-0">
+              </div>
+              <div className="flex-1 min-w-0">
                   <span className="font-bold text-gray-800 text-base">Transfer</span>
                   <p className="text-xs text-gray-600">Move funds between wallets</p>
-                </div>
-                <button
-                  onClick={() => setShowTransferSection(true)}
-                  className="px-3 py-1.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-300 text-xs font-semibold shadow-md hover:shadow-lg"
-                >
-                  Transfer
-                </button>
               </div>
+              <button
+                onClick={() => setShowTransferSection(true)}
+                  className="px-3 py-1.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-300 text-xs font-semibold shadow-md hover:shadow-lg"
+              >
+                Transfer
+              </button>
             </div>
           </div>
+        </div>
 
         {/* Premium Stats Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-8">
@@ -1122,15 +1310,24 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
                 <button
                   onClick={handleLevelIncomeClaim}
                   disabled={dailySignInLoading}
-                  className="w-full px-3 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-300 font-medium shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                  className="w-full bg-gradient-to-r from-emerald-500 via-emerald-600 to-teal-500 hover:from-emerald-600 hover:via-teal-600 hover:to-emerald-700 text-white font-bold py-3 px-4 rounded-xl shadow-xl hover:shadow-2xl transform hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none relative overflow-hidden group"
                 >
+                  {/* Animated background */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                  
                   {dailySignInLoading ? (
-                    <div className="flex items-center justify-center space-x-2">
+                    <div className="flex items-center justify-center space-x-2 relative z-10">
                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      <span>Claiming...</span>
+                      <span className="text-sm font-semibold">Claiming Income...</span>
                     </div>
                   ) : (
-                    'Claim Level'
+                    <div className="flex items-center justify-center space-x-2 relative z-10">
+                      <div className="w-4 h-4 bg-white/20 rounded-full flex items-center justify-center">
+                        <Gift className="w-3 h-3 text-white" />
+                      </div>
+                      <span className="text-sm font-semibold">Claim Level Income</span>
+                      <div className="w-1.5 h-1.5 bg-white/60 rounded-full animate-pulse"></div>
+                    </div>
                   )}
                 </button>
               </div>
@@ -1444,11 +1641,21 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
                   </div>
                 </div>
                 <button
-                  className="px-4 py-2 bg-gradient-to-r from-blue-400 to-purple-500 text-white rounded-lg font-medium shadow hover:from-blue-500 hover:to-purple-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-4 py-2 bg-gradient-to-r from-emerald-500 via-emerald-600 to-teal-500 text-white rounded-lg font-bold shadow-lg hover:shadow-xl hover:from-emerald-600 hover:via-teal-600 hover:to-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transform hover:-translate-y-0.5 transition-all duration-300"
                   onClick={handleLevelIncomeClaim}
                   disabled={dailySignInLoading}
                 >
-                  {dailySignInLoading ? 'Claiming...' : 'Claim Level'}
+                  {dailySignInLoading ? (
+                    <div className="flex items-center space-x-2">
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span>Claiming...</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center space-x-2">
+                      <Gift className="w-4 h-4" />
+                      <span>Claim Level</span>
+                    </div>
+                  )}
                 </button>
               </div>
             </div>
@@ -1507,10 +1714,10 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
                     <div className="text-center mb-4 w-full">
                       <p className="text-sm text-gray-600 font-medium mb-2">Wallet ID:</p>
                       <div className="flex items-center justify-center space-x-2 bg-gray-100 px-3 py-2 rounded-lg w-full max-w-xs mx-auto">
-                        <p className="text-base text-gray-800 font-mono break-all">{cryptoWalletData.textData}</p>
+                        <p className="text-base text-gray-800 font-mono break-all">{cryptoWalletData.title}</p>
                         <button
                           type="button"
-                          onClick={() => copyWalletId(cryptoWalletData.textData)}
+                          onClick={() => copyWalletId(cryptoWalletData.title)}
                           className="text-blue-600 hover:text-blue-800 transition-colors flex-shrink-0"
                           title="Copy wallet ID"
                         >

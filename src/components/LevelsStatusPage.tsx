@@ -236,12 +236,12 @@ const LevelsStatusPage: React.FC = () => {
         <div className="max-w-4xl mx-auto">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-3 sm:space-y-0 mb-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-xl flex items-center justify-center shadow-lg">
-                <Trophy className="w-6 h-6 text-white" />
-              </div>
-              <div className="text-center sm:text-left">
-                <h1 className="text-2xl sm:text-3xl font-bold mb-2">Levels & Status</h1>
-                <p className="text-indigo-100 opacity-90">Track your progress and earnings</p>
+            <div className="w-12 h-12 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-xl flex items-center justify-center shadow-lg">
+              <Trophy className="w-6 h-6 text-white" />
+            </div>
+            <div className="text-center sm:text-left">
+              <h1 className="text-2xl sm:text-3xl font-bold mb-2">Levels & Status</h1>
+              <p className="text-indigo-100 opacity-90">Track your progress and earnings</p>
               </div>
             </div>
             <div className="flex flex-col sm:flex-row gap-2">
@@ -690,7 +690,7 @@ const LevelsStatusPage: React.FC = () => {
                     <h3 className="text-xl font-bold">Level Details</h3>
                     <p className="text-white/80 text-sm">Current Level: {levelDetails.currentLevel}</p>
                   </div>
-                </div>
+              </div>
                 <button
                   onClick={() => setShowLevelDetails(false)}
                   className="w-10 h-10 bg-white/10 backdrop-blur-sm hover:bg-white/20 rounded-xl flex items-center justify-center transition-all duration-200 border border-white/20"
@@ -699,7 +699,7 @@ const LevelsStatusPage: React.FC = () => {
                 </button>
               </div>
             </div>
-
+            
             {/* Modal Content */}
             <div className="p-6 max-h-96 overflow-y-auto">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -837,7 +837,7 @@ const LevelsStatusPage: React.FC = () => {
                   ))}
                 </div>
               </div>
-
+              
               {/* Direct Members List */}
               {levelDetails.directReferrals.members.length > 0 && (
                 <div className="mt-6 bg-gradient-to-r from-emerald-50 to-emerald-100 rounded-xl p-4 border border-emerald-200">
@@ -894,7 +894,7 @@ const LevelsStatusPage: React.FC = () => {
                 </button>
               </div>
             </div>
-
+            
             {/* Modal Content */}
             <div className="p-6 max-h-96 overflow-y-auto">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
