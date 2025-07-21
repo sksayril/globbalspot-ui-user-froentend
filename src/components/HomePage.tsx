@@ -561,15 +561,21 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
     return Number(value).toFixed(3).replace(/\.?0+$/, '');
   };
 
-  // Helper function to calculate today's income from transactions (excluding deposits)
+  // Helper function to calculate today's income from transactions (excluding deposits and transfers)
   const calculateTodayIncome = (userStats: any) => {
     if (!userStats?.normalWallet?.transactions) return { total: 0, referral: 0, level: 0, other: 0 };
     
     const today = new Date().toDateString();
     const todayTransactions = userStats.normalWallet.transactions.filter((tx: any) => {
       const txDate = new Date(tx.date).toDateString();
-      // Only include positive amounts and exclude deposits
-      return txDate === today && tx.amount > 0 && tx.type !== 'deposit';
+      // Only include positive amounts and exclude deposits and transfers
+      const isTransfer = tx.type === 'transfer' || 
+                        tx.type === 'transfer_from_user' || 
+                        tx.type === 'transfer_to_user' ||
+                        tx.description?.toLowerCase().includes('transfer from') ||
+                        tx.description?.toLowerCase().includes('transfer to');
+      
+      return txDate === today && tx.amount > 0 && tx.type !== 'deposit' && !isTransfer;
     });
 
     const income = {
@@ -580,14 +586,20 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
     };
 
     todayTransactions.forEach((tx: any) => {
+      const isTransfer = tx.type === 'transfer' || 
+                        tx.type === 'transfer_from_user' || 
+                        tx.type === 'transfer_to_user' ||
+                        tx.description?.toLowerCase().includes('transfer from') ||
+                        tx.description?.toLowerCase().includes('transfer to');
+      
       income.total += tx.amount;
       
       if (tx.type === 'referral_bonus') {
         income.referral += tx.amount;
       } else if (tx.type === 'level_income') {
         income.level += tx.amount;
-      } else if (tx.type !== 'deposit') {
-        // Include other earned income types but exclude deposits
+      } else if (tx.type !== 'deposit' && !isTransfer) {
+        // Include other earned income types but exclude deposits and transfers
         income.other += tx.amount;
       }
     });
@@ -595,7 +607,7 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
     return income;
   };
 
-  // Helper function to calculate total income from all transactions (excluding deposits)
+  // Helper function to calculate total income from all transactions (excluding deposits and transfers)
   const calculateTotalIncome = (userStats: any) => {
     if (!userStats?.normalWallet?.transactions) return { total: 0, referral: 0, level: 0, other: 0 };
     
@@ -607,16 +619,22 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
     };
 
     userStats.normalWallet.transactions.forEach((tx: any) => {
-      // Only count positive amounts and exclude deposits
-      if (tx.amount > 0 && tx.type !== 'deposit') {
+      // Only count positive amounts and exclude deposits and transfers
+      const isTransfer = tx.type === 'transfer' || 
+                        tx.type === 'transfer_from_user' || 
+                        tx.type === 'transfer_to_user' ||
+                        tx.description?.toLowerCase().includes('transfer from') ||
+                        tx.description?.toLowerCase().includes('transfer to');
+      
+      if (tx.amount > 0 && tx.type !== 'deposit' && !isTransfer) {
         income.total += tx.amount;
         
         if (tx.type === 'referral_bonus') {
           income.referral += tx.amount;
         } else if (tx.type === 'level_income') {
           income.level += tx.amount;
-        } else if (tx.type !== 'deposit') {
-          // Include other earned income types but exclude deposits
+        } else if (tx.type !== 'deposit' && !isTransfer) {
+          // Include other earned income types but exclude deposits and transfers
           income.other += tx.amount;
         }
       }
@@ -636,14 +654,21 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
     };
 
     userStats.normalWallet.transactions.forEach((tx: any) => {
+      // Check if transaction is a transfer
+      const isTransfer = tx.type === 'transfer' || 
+                        tx.type === 'transfer_from_user' || 
+                        tx.type === 'transfer_to_user' ||
+                        tx.description?.toLowerCase().includes('transfer from') ||
+                        tx.description?.toLowerCase().includes('transfer to');
+      
       // Filter by date if it's today's transactions
       if (type === 'today') {
         const today = new Date().toDateString();
         const txDate = new Date(tx.date).toDateString();
-        if (txDate !== today || tx.amount <= 0 || tx.type === 'deposit') return;
+        if (txDate !== today || tx.amount <= 0 || tx.type === 'deposit' || isTransfer) return;
       } else {
-        // For total, exclude deposits and negative amounts
-        if (tx.amount <= 0 || tx.type === 'deposit') return;
+        // For total, exclude deposits, transfers and negative amounts
+        if (tx.amount <= 0 || tx.type === 'deposit' || isTransfer) return;
       }
 
       const transactionInfo = {

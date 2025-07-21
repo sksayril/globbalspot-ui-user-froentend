@@ -569,8 +569,8 @@ const LevelsStatusPage: React.FC = () => {
             
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Current Level */}
-              <div className="bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl p-6 border border-purple-200">
-                <div className="flex items-center space-x-4 mb-4">
+              {/* <div className="bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl p-6 border border-purple-200"> */}
+                {/* <div className="flex items-center space-x-4 mb-4">
                   <div className={`w-16 h-16 bg-gradient-to-br ${getDigitLevelColor(levelsData.digitLevel.current)} rounded-xl flex items-center justify-center shadow-lg`}>
                     <span className="text-white font-bold text-lg">{levelsData.digitLevel.current}</span>
                   </div>
@@ -578,8 +578,8 @@ const LevelsStatusPage: React.FC = () => {
                     <h3 className="font-bold text-purple-800 text-lg">Current Level</h3>
                     <p className="text-purple-600 text-sm">Digit Level {levelsData.digitLevel.current}</p>
                   </div>
-                </div>
-                <div className="space-y-2">
+                </div> */}
+                {/* <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="text-purple-700">Total Earned:</span>
                     <span className="font-semibold text-purple-800">${levelsData.digitLevel.totalEarned.toFixed(3)}</span>
@@ -592,8 +592,8 @@ const LevelsStatusPage: React.FC = () => {
                     <span className="text-purple-700">Last Calculated:</span>
                     <span className="font-semibold text-purple-800">{formatDate(levelsData.digitLevel.lastCalculated)}</span>
                   </div>
-                </div>
-              </div>
+                </div> */}
+              {/* </div> */}
 
               {/* Level Criteria */}
               <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-xl p-6 border border-green-200">

@@ -372,7 +372,7 @@ const TeamsPage: React.FC<TeamsPageProps> = ({ userStats, referralCode }) => {
                 <div className="w-10 h-10 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-md">
                   <DollarSign className="w-5 h-5 text-white" />
                 </div>
-                <div className="text-xl font-bold text-yellow-600 mb-1">${(api?.levelBasedIncome?.totalDailyTeamIncome || 0).toFixed(3)}</div>
+                <div className="text-xl font-bold text-yellow-600 mb-1">${(api?.totalTeamIncome || 0).toFixed(3)}</div>
                 <div className="text-xs text-gray-600 font-medium">My Income From Teams</div>
               </div>
             </div>
