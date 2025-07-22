@@ -16,7 +16,8 @@ import {
   Trophy,
   Gift,
   Activity,
-  X
+  X,
+  Info
 } from 'lucide-react';
 import { getLevelsStatus, LevelsStatusResponse } from '../services/api';
 import { CardSkeleton, GridSkeleton } from './SkeletonLoader';
@@ -34,10 +35,16 @@ const LevelsStatusPage: React.FC = () => {
   const [isLoadingCharacterDetails, setIsLoadingCharacterDetails] = useState(false);
   const [levelProgress, setLevelProgress] = useState<any>(null);
   const [isLoadingProgress, setIsLoadingProgress] = useState(false);
+  const [levelsEarningsData, setLevelsEarningsData] = useState<any>(null);
+  const [isLoadingEarnings, setIsLoadingEarnings] = useState(false);
+  const [benefitStructureData, setBenefitStructureData] = useState<any>(null);
+  const [isLoadingBenefits, setIsLoadingBenefits] = useState(false);
 
   useEffect(() => {
     fetchLevelsStatus();
     fetchLevelProgress();
+    fetchLevelsEarnings();
+    fetchBenefitStructure();
   }, []);
 
   const fetchLevelsStatus = async () => {
@@ -156,6 +163,56 @@ const LevelsStatusPage: React.FC = () => {
       setError(err instanceof Error ? err.message : 'Failed to fetch level progress');
     } finally {
       setIsLoadingProgress(false);
+    }
+  };
+
+  const fetchLevelsEarnings = async () => {
+    try {
+      setIsLoadingEarnings(true);
+      setError(null);
+      
+      const response = await fetch('https://api.goalsbot.com/users/levels-earnings-report', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+        },
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setLevelsEarningsData(data.data);
+      } else {
+        setError(data.message || 'Failed to fetch levels earnings');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch levels earnings');
+    } finally {
+      setIsLoadingEarnings(false);
+    }
+  };
+
+  const fetchBenefitStructure = async () => {
+    try {
+      setIsLoadingBenefits(true);
+      setError(null);
+      
+      const response = await fetch('https://api.goalsbot.com/users/benefit-structure', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+        },
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setBenefitStructureData(data.data);
+      } else {
+        setError(data.message || 'Failed to fetch benefit structure');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch benefit structure');
+    } finally {
+      setIsLoadingBenefits(false);
     }
   };
 
@@ -419,8 +476,8 @@ const LevelsStatusPage: React.FC = () => {
                 </div>
 
                 {/* Character Level Progress */}
-                <div className="bg-gradient-to-r from-orange-50 to-orange-100 rounded-xl p-6 border border-orange-200">
-                  <div className="flex items-center space-x-3 mb-4">
+                {/* <div className="bg-gradient-to-r from-orange-50 to-orange-100 rounded-xl p-6 border border-orange-200"> */}
+                  {/* <div className="flex items-center space-x-3 mb-4">
                     <div className="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center">
                       <Crown className="w-5 h-5 text-white" />
                     </div>
@@ -428,10 +485,10 @@ const LevelsStatusPage: React.FC = () => {
                       <h3 className="font-semibold text-orange-800 text-lg">Character Level Progress</h3>
                       <p className="text-orange-600 text-sm">Current: {levelProgress.characterLevel.currentLevel}</p>
                     </div>
-                  </div>
+                  </div> */}
                   
                   {/* Next Level Progress */}
-                  <div className="mb-4">
+                  {/* <div className="mb-4">
                                             <div className="flex justify-between text-sm mb-2">
                           <span className="text-orange-700">Next Level: {levelProgress.characterLevel.nextLevel}</span>
                           <span className="font-semibold text-orange-800">{levelProgress.characterLevel.nextLevelRequirements?.progress || 0}%</span>
@@ -445,10 +502,10 @@ const LevelsStatusPage: React.FC = () => {
                     <div className="text-xs text-orange-600 mt-2">
                       {levelProgress.characterLevel.nextLevelRequirements?.description || 'No description available'}
                     </div>
-                  </div>
+                  </div> */}
 
                   {/* All Levels Progress */}
-                  <div className="space-y-3">
+                  {/* <div className="space-y-3">
                     <h4 className="font-semibold text-orange-800 text-sm">All Levels:</h4>
                     {Object.entries(levelProgress.characterLevel.levels || {}).map(([level, data]: [string, any]) => (
                       <div key={level} className="bg-white/50 rounded-lg p-3">
@@ -471,8 +528,8 @@ const LevelsStatusPage: React.FC = () => {
                         <div className="text-xs text-orange-600 mt-1">{data.description}</div>
                       </div>
                     ))}
-                  </div>
-                </div>
+                  </div> */}
+                {/* </div> */}
               </div>
 
               {/* Summary */}
@@ -500,7 +557,7 @@ const LevelsStatusPage: React.FC = () => {
           )}
 
           {/* Character Level Section */}
-          <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-6 sm:p-8 shadow-xl border border-white/50 mb-8">
+          {/* <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-6 sm:p-8 shadow-xl border border-white/50 mb-8">
             <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4 mb-6">
               <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg">
                 <Crown className="w-6 h-6 text-white" />
@@ -512,7 +569,6 @@ const LevelsStatusPage: React.FC = () => {
             </div>
             
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Current Level */}
               <div className="bg-gradient-to-r from-orange-50 to-orange-100 rounded-xl p-6 border border-orange-200">
                 <div className="flex items-center space-x-4 mb-4">
                   <div className={`w-16 h-16 bg-gradient-to-br ${getCharacterLevelColor(levelsData.characterLevel.current)} rounded-xl flex items-center justify-center shadow-lg`}>
@@ -535,7 +591,6 @@ const LevelsStatusPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Level Percentages */}
               <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl p-6 border border-blue-200">
                 <h3 className="font-bold text-blue-800 text-lg mb-4">Level Percentages</h3>
                 <div className="space-y-3">
@@ -553,7 +608,7 @@ const LevelsStatusPage: React.FC = () => {
                 </div>
               </div>
             </div>
-          </div>
+          </div> */}
 
           {/* Digit Level Section */}
           <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-6 sm:p-8 shadow-xl border border-white/50 mb-8">
@@ -864,6 +919,193 @@ const LevelsStatusPage: React.FC = () => {
                   </div>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+              )}
+
+      {/* Benefit Structure Section */}
+      {benefitStructureData && (
+        <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-6 sm:p-8 shadow-xl border border-white/50 mb-8">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4 mb-6">
+            <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+              <Gift className="w-6 h-6 text-white" />
+            </div>
+            <div className="text-center sm:text-left">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2">Levels Income Benefits</h2>
+              <p className="text-gray-600">Complete overview of all level benefits and requirements</p>
+            </div>
+          </div>
+
+          {/* Summary Cards */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            {/* <div className="bg-gradient-to-r from-orange-50 to-orange-100 rounded-xl p-6 border border-orange-200">
+              <div className="flex items-center space-x-3 mb-4">
+                <div className="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center">
+                  <Crown className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-orange-800 text-lg">Character Levels</h3>
+                  <p className="text-orange-600 text-sm">{benefitStructureData.summary.characterLevels.totalLevels} Levels Available</p>
+                </div>
+              </div>
+              <div className="space-y-2 text-sm">
+                <div className="text-orange-700">
+                  <span className="font-medium">Income Source:</span>
+                  <div className="font-semibold text-orange-800">{benefitStructureData.summary.characterLevels.incomeSource}</div>
+                </div>
+                <div className="text-orange-700">
+                  <span className="font-medium">Calculation:</span>
+                  <div className="font-semibold text-orange-800">{benefitStructureData.summary.characterLevels.calculation}</div>
+                </div>
+                <div className="text-orange-700">
+                  <span className="font-medium">Description:</span>
+                  <div className="font-semibold text-orange-800">{benefitStructureData.summary.characterLevels.description}</div>
+                </div>
+              </div>
+            </div> */}
+
+            {/* Digit Levels Summary */}
+            <div className="bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl p-6 border border-purple-200">
+              <div className="flex items-center space-x-3 mb-4">
+                <div className="w-10 h-10 bg-purple-500 rounded-lg flex items-center justify-center">
+                  <Target className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-purple-800 text-lg">Digit Levels</h3>
+                  <p className="text-purple-600 text-sm">{benefitStructureData.summary.digitLevels.totalLevels} Levels Available</p>
+                </div>
+              </div>
+              <div className="space-y-2 text-sm">
+                <div className="text-purple-700">
+                  <span className="font-medium">Income Source:</span>
+                  <div className="font-semibold text-purple-800">{benefitStructureData.summary.digitLevels.incomeSource}</div>
+                </div>
+                <div className="text-purple-700">
+                  <span className="font-medium">Calculation:</span>
+                  <div className="font-semibold text-purple-800">{benefitStructureData.summary.digitLevels.calculation}</div>
+                </div>
+                <div className="text-purple-700">
+                  <span className="font-medium">Description:</span>
+                  <div className="font-semibold text-purple-800">{benefitStructureData.summary.digitLevels.description}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Character Levels Details */}
+          {/* <div className="mb-8">
+            <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center space-x-2">
+              <Crown className="w-5 h-5 text-orange-600" />
+              <span>Character Levels Benefits</span>
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {Object.entries(benefitStructureData.characterLevels).map(([level, data]: [string, any]) => (
+                <div key={level} className="bg-gradient-to-r from-orange-50 to-orange-100 rounded-xl p-4 border border-orange-200">
+                  <div className="flex items-center space-x-3 mb-3">
+                    <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
+                      <span className="text-white font-bold text-sm">{level}</span>
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-orange-800">Level {level}</h4>
+                      <p className="text-orange-600 text-xs">{data.percentage}% Daily</p>
+                    </div>
+                  </div>
+                  <div className="space-y-2 text-xs">
+                    <div className="text-orange-700">
+                      <span className="font-medium">Daily:</span>
+                      <div className="font-semibold text-orange-800">{data.dailyBenefit}</div>
+                    </div>
+                    <div className="text-orange-700">
+                      <span className="font-medium">Monthly:</span>
+                      <div className="font-semibold text-orange-800">{data.monthlyBenefit}</div>
+                    </div>
+                    <div className="text-orange-700">
+                      <span className="font-medium">Yearly:</span>
+                      <div className="font-semibold text-orange-800">{data.yearlyBenefit}</div>
+                    </div>
+                    <div className="text-orange-700">
+                      <span className="font-medium">Requirements:</span>
+                      <div className="font-semibold text-orange-800">{data.requirements}</div>
+                    </div>
+                    <div className="text-orange-700">
+                      <span className="font-medium">Example:</span>
+                      <div className="font-semibold text-orange-800">{data.example}</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div> */}
+
+          {/* Digit Levels Details */}
+          <div className="mb-8">
+            <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center space-x-2">
+              <Target className="w-5 h-5 text-purple-600" />
+              <span>Digit Levels Benefits</span>
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {Object.entries(benefitStructureData.digitLevels).map(([level, data]: [string, any]) => (
+                <div key={level} className="bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl p-4 border border-purple-200">
+                  <div className="flex items-center space-x-3 mb-3">
+                    <div className="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center">
+                      <span className="text-white font-bold text-sm">{level.replace('Lvl', '')}</span>
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-purple-800">{level}</h4>
+                      <p className="text-purple-600 text-xs">{data.percentage}% Daily</p>
+                    </div>
+                  </div>
+                  <div className="space-y-2 text-xs">
+                    <div className="text-purple-700">
+                      <span className="font-medium">Daily:</span>
+                      <div className="font-semibold text-purple-800">{data.dailyBenefit}</div>
+                    </div>
+                    <div className="text-purple-700">
+                      <span className="font-medium">Monthly:</span>
+                      <div className="font-semibold text-purple-800">{data.monthlyBenefit}</div>
+                    </div>
+                    <div className="text-purple-700">
+                      <span className="font-medium">Yearly:</span>
+                      <div className="font-semibold text-purple-800">{data.yearlyBenefit}</div>
+                    </div>
+                    <div className="text-purple-700">
+                      <span className="font-medium">Requirements:</span>
+                      <div className="font-semibold text-purple-800">{data.requirements.description}</div>
+                    </div>
+                    <div className="text-purple-700">
+                      <span className="font-medium">Example:</span>
+                      <div className="font-semibold text-purple-800">{data.example}</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* General Information */}
+          <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-6 border border-gray-200">
+            <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center space-x-2">
+              <Info className="w-5 h-5 text-gray-600" />
+              <span>General Information</span>
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              <div className="space-y-2">
+                <div className="text-gray-700">
+                  <span className="font-medium">Total Income:</span>
+                  <div className="font-semibold text-gray-800">{benefitStructureData.summary.totalIncome}</div>
+                </div>
+                <div className="text-gray-700">
+                  <span className="font-medium">Claiming:</span>
+                  <div className="font-semibold text-gray-800">{benefitStructureData.summary.claiming}</div>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="text-gray-700">
+                  <span className="font-medium">Compounding:</span>
+                  <div className="font-semibold text-gray-800">{benefitStructureData.summary.compounding}</div>
+                </div>
+              </div>
             </div>
           </div>
         </div>

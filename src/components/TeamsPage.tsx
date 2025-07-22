@@ -121,6 +121,15 @@ const TeamsPage: React.FC<TeamsPageProps> = ({ userStats, referralCode }) => {
     { level: 'D', count: api?.teamIncomeByLevel.level4.count || 0, color: 'from-blue-500 to-blue-600', name: 'Delta Team', bgColor: 'bg-blue-50', iconColor: 'text-blue-600' },
     { level: 'E', count: api?.teamIncomeByLevel.level5.count || 0, color: 'from-purple-500 to-purple-600', name: 'Elite Team', bgColor: 'bg-purple-50', iconColor: 'text-purple-600' }
   ];
+
+  // Team commission structure
+  const teamCommissions = [
+    { level: 'Lvl1', percentages: [10, 5, 2.5, 1.25, 0.625], color: 'from-emerald-500 to-emerald-600', bgColor: 'bg-emerald-50' },
+    { level: 'Lvl2', percentages: [11, 5.5, 2.7, 1.30, 0.68], color: 'from-blue-500 to-blue-600', bgColor: 'bg-blue-50' },
+    { level: 'Lvl3', percentages: [12, 6, 3, 1.50, 0.75], color: 'from-purple-500 to-purple-600', bgColor: 'bg-purple-50' },
+    { level: 'Lvl4', percentages: [13, 6.5, 3.25, 1.62, 0.81], color: 'from-pink-500 to-pink-600', bgColor: 'bg-pink-50' },
+    { level: 'Lvl5', percentages: [14, 7, 3.50, 1.75, 1], color: 'from-orange-500 to-orange-600', bgColor: 'bg-orange-50' }
+  ];
   const teamMembersData: { [key: string]: any[] } = {
     A: api?.teamIncomeByLevel.level1.users || [],
     B: api?.teamIncomeByLevel.level2.users || [],
@@ -416,7 +425,7 @@ const TeamsPage: React.FC<TeamsPageProps> = ({ userStats, referralCode }) => {
         </div>
 
         {/* Premium Teams */}
-        <div className="bg-white/90 backdrop-blur-xl rounded-2xl shadow-lg border border-white/60 overflow-hidden">
+        {/* <div className="bg-white/90 backdrop-blur-xl rounded-2xl shadow-lg border border-white/60 overflow-hidden">
           <div className="flex items-center justify-between p-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
             <div className="flex items-center space-x-3">
               <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center shadow-md">
@@ -438,6 +447,60 @@ const TeamsPage: React.FC<TeamsPageProps> = ({ userStats, referralCode }) => {
                 </div>
               ))}
             </div>
+          </div>
+        </div> */}
+
+        {/* Team Commission Structure */}
+        <div className="bg-white/90 backdrop-blur-xl rounded-2xl shadow-lg border border-white/60 overflow-hidden">
+          <div className="flex items-center justify-between p-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center shadow-md">
+                <TrendingUp className="w-4 h-4 text-white" />
+              </div>
+              <h3 className="font-bold text-gray-800 text-base">Team Commission Structure</h3>
+            </div>
+            <ChevronRight className="w-4 h-4 text-gray-400" />
+          </div>
+          <div className="p-4">
+            {/* Header Row */}
+            <div className="grid grid-cols-6 gap-2 mb-3">
+              <div className="text-center">
+                <div className="text-xs font-bold text-gray-600 uppercase tracking-wide">Level</div>
+              </div>
+              <div className="text-center">
+                <div className="text-xs font-bold text-gray-600 uppercase tracking-wide">A</div>
+              </div>
+              <div className="text-center">
+                <div className="text-xs font-bold text-gray-600 uppercase tracking-wide">B</div>
+              </div>
+              <div className="text-center">
+                <div className="text-xs font-bold text-gray-600 uppercase tracking-wide">C</div>
+              </div>
+              <div className="text-center">
+                <div className="text-xs font-bold text-gray-600 uppercase tracking-wide">D</div>
+              </div>
+              <div className="text-center">
+                <div className="text-xs font-bold text-gray-600 uppercase tracking-wide">E</div>
+              </div>
+            </div>
+            
+            {/* Commission Rows */}
+            {teamCommissions.map((commission) => (
+              <div key={commission.level} className="grid grid-cols-6 gap-2 mb-2">
+                <div className={`text-center py-2 px-1 rounded-lg ${commission.bgColor} border border-gray-200`}>
+                  <div className={`text-sm font-bold bg-gradient-to-r ${commission.color} bg-clip-text text-transparent`}>
+                    {commission.level}
+                  </div>
+                </div>
+                {commission.percentages.map((percentage, index) => (
+                  <div key={index} className="text-center py-2 px-1 rounded-lg bg-gray-50 border border-gray-200">
+                    <div className="text-sm font-bold text-gray-800">
+                      {percentage}%
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ))}
           </div>
         </div>
       </div>

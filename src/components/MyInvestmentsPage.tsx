@@ -21,6 +21,14 @@ const MyInvestmentsPage: React.FC<MyInvestmentsPageProps> = ({ investments, onIn
   const [fromWallet, setFromWallet] = useState('investment');
   const [toWallet, setToWallet] = useState('normal');
   const [transferSuccess, setTransferSuccess] = useState('');
+  
+  // TPIN states
+  const [showTpinSetupModal, setShowTpinSetupModal] = useState(false);
+  const [showTpinVerifyModal, setShowTpinVerifyModal] = useState(false);
+  const [tpinSetup, setTpinSetup] = useState({ pin: '', confirmPin: '' });
+  const [tpinVerify, setTpinVerify] = useState({ pin: '' });
+  const [tpinError, setTpinError] = useState('');
+  const [pendingTransfer, setPendingTransfer] = useState<any>(null);
 
   // Invest modal state
   const [showInvestModal, setShowInvestModal] = useState(false);
@@ -109,25 +117,94 @@ const MyInvestmentsPage: React.FC<MyInvestmentsPageProps> = ({ investments, onIn
     setTransferSuccess('');
   };
 
-  // Handler for Transfer submit
-  const handleTransferSubmit = async (e: React.FormEvent) => {
+  // TPIN utility functions
+  const getStoredTpin = () => {
+    return localStorage.getItem('userTpin');
+  };
+
+  const setStoredTpin = (pin: string) => {
+    localStorage.setItem('userTpin', pin);
+  };
+
+  const handleTpinSetup = (e: React.FormEvent) => {
     e.preventDefault();
+    setTpinError('');
+    
+    if (tpinSetup.pin.length !== 4) {
+      setTpinError('PIN must be 4 digits');
+      return;
+    }
+    
+    if (tpinSetup.pin !== tpinSetup.confirmPin) {
+      setTpinError('PINs do not match');
+      return;
+    }
+    
+    if (!/^\d{4}$/.test(tpinSetup.pin)) {
+      setTpinError('PIN must contain only numbers');
+      return;
+    }
+    
+    // Save TPIN to localStorage
+    setStoredTpin(tpinSetup.pin);
+    setShowTpinSetupModal(false);
+    setTpinSetup({ pin: '', confirmPin: '' });
+    
+    // Proceed with pending transfer
+    if (pendingTransfer) {
+      handleTransferWithTpin(pendingTransfer);
+    }
+    setPendingTransfer(null);
+  };
+
+  const handleTpinVerify = (e: React.FormEvent) => {
+    e.preventDefault();
+    setTpinError('');
+    
+    const storedPin = getStoredTpin();
+    if (tpinVerify.pin !== storedPin) {
+      setTpinError('Incorrect PIN');
+      return;
+    }
+    
+    setShowTpinVerifyModal(false);
+    setTpinVerify({ pin: '' });
+    
+    // Proceed with pending transfer
+    if (pendingTransfer) {
+      handleTransferWithTpin(pendingTransfer);
+    }
+    setPendingTransfer(null);
+  };
+
+  const handleTransferWithTpin = async (transferData: any) => {
+    setTransferLoading(true);
     setTransferError('');
     setTransferSuccess('');
-    if (!transferAmount || isNaN(Number(transferAmount)) || Number(transferAmount) <= 0) {
+    
+    if (!transferData.amount || isNaN(Number(transferData.amount)) || Number(transferData.amount) <= 0) {
       setTransferError('Please enter a valid amount');
+      setTransferLoading(false);
       return;
     }
-    if (fromWallet === toWallet) {
+    
+    if (Number(transferData.amount) < 10) {
+      setTransferError('Minimum transfer amount is $10');
+      setTransferLoading(false);
+      return;
+    }
+    
+    if (transferData.fromWallet === transferData.toWallet) {
       setTransferError('Please select different wallets');
+      setTransferLoading(false);
       return;
     }
-    setTransferLoading(true);
+    
     try {
       const response = await transferWallet({
-        fromWallet,
-        toWallet,
-        amount: Number(transferAmount),
+        fromWallet: transferData.fromWallet,
+        toWallet: transferData.toWallet,
+        amount: Number(transferData.amount),
       });
       setTransferSuccess(response.message || 'Transfer completed successfully');
       if (onWalletsUpdate && response.data && response.data.newBalances) {
@@ -146,6 +223,48 @@ const MyInvestmentsPage: React.FC<MyInvestmentsPageProps> = ({ investments, onIn
     } finally {
       setTransferLoading(false);
     }
+  };
+
+  const checkTpinAndProceed = (transferData: any) => {
+    const storedPin = getStoredTpin();
+    
+    if (!storedPin) {
+      // First time setup
+      setPendingTransfer(transferData);
+      setShowTpinSetupModal(true);
+    } else {
+      // Verify existing PIN
+      setPendingTransfer(transferData);
+      setShowTpinVerifyModal(true);
+    }
+  };
+
+  // Handler for Transfer submit
+  const handleTransferSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setTransferError('');
+    setTransferSuccess('');
+    if (!transferAmount || isNaN(Number(transferAmount)) || Number(transferAmount) <= 0) {
+      setTransferError('Please enter a valid amount');
+      return;
+    }
+    
+    if (Number(transferAmount) < 10) {
+      setTransferError('Minimum transfer amount is $10');
+      return;
+    }
+    if (fromWallet === toWallet) {
+      setTransferError('Please select different wallets');
+      return;
+    }
+    
+    // Check TPIN before proceeding
+    const transferData = {
+      fromWallet,
+      toWallet,
+      amount: transferAmount
+    };
+    checkTpinAndProceed(transferData);
   };
 
   // Fix: Normalize plan IDs for robust comparison
@@ -833,6 +952,127 @@ const MyInvestmentsPage: React.FC<MyInvestmentsPageProps> = ({ investments, onIn
                   disabled={investLoading}
                 >
                   {investLoading ? 'Processing...' : 'Buy'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* TPIN Setup Modal */}
+      {showTpinSetupModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md relative">
+            <button
+              className="absolute top-3 right-3 text-gray-400 hover:text-gray-700"
+              onClick={() => setShowTpinSetupModal(false)}
+            >
+              &times;
+            </button>
+            <h2 className="text-xl font-bold mb-4 text-center">Set Up Transaction PIN</h2>
+            <p className="text-sm text-gray-600 mb-6 text-center">
+              Create a 4-digit PIN to secure your transactions
+            </p>
+            {tpinError && <div className="mb-4 text-red-600 text-sm text-center">{tpinError}</div>}
+            
+            <form onSubmit={handleTpinSetup} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Enter 4-digit PIN</label>
+                <input
+                  type="password"
+                  maxLength={4}
+                  value={tpinSetup.pin}
+                  onChange={(e) => setTpinSetup(prev => ({ ...prev, pin: e.target.value }))}
+                  className="w-full border rounded-lg px-4 py-3 text-center text-lg font-mono tracking-widest"
+                  placeholder="0000"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">Confirm PIN</label>
+                <input
+                  type="password"
+                  maxLength={4}
+                  value={tpinSetup.confirmPin}
+                  onChange={(e) => setTpinSetup(prev => ({ ...prev, confirmPin: e.target.value }))}
+                  className="w-full border rounded-lg px-4 py-3 text-center text-lg font-mono tracking-widest"
+                  placeholder="0000"
+                  required
+                />
+              </div>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="text-sm text-blue-800">
+                  <strong>Important:</strong> This PIN will be required for all withdrawals and transfers. Keep it secure and don't share it with anyone.
+                </p>
+              </div>
+              <div className="flex justify-end space-x-3">
+                <button
+                  type="button"
+                  className="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300"
+                  onClick={() => setShowTpinSetupModal(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
+                >
+                  Set PIN
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* TPIN Verify Modal */}
+      {showTpinVerifyModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md relative">
+            <button
+              className="absolute top-3 right-3 text-gray-400 hover:text-gray-700"
+              onClick={() => setShowTpinVerifyModal(false)}
+            >
+              &times;
+            </button>
+            <h2 className="text-xl font-bold mb-4 text-center">Enter Transaction PIN</h2>
+            <p className="text-sm text-gray-600 mb-6 text-center">
+              Enter your 4-digit PIN to continue
+            </p>
+            {tpinError && <div className="mb-4 text-red-600 text-sm text-center">{tpinError}</div>}
+            
+            <form onSubmit={handleTpinVerify} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Enter PIN</label>
+                <input
+                  type="password"
+                  maxLength={4}
+                  value={tpinVerify.pin}
+                  onChange={(e) => setTpinVerify({ pin: e.target.value })}
+                  className="w-full border rounded-lg px-4 py-3 text-center text-lg font-mono tracking-widest"
+                  placeholder="0000"
+                  required
+                  autoFocus
+                />
+              </div>
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                <p className="text-sm text-yellow-800">
+                  <strong>Security:</strong> This PIN is required to complete your transaction.
+                </p>
+              </div>
+              <div className="flex justify-end space-x-3">
+                <button
+                  type="button"
+                  className="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300"
+                  onClick={() => setShowTpinVerifyModal(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700"
+                >
+                  Verify PIN
                 </button>
               </div>
             </form>

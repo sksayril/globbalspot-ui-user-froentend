@@ -291,7 +291,7 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
       
       if (teamSuccess) {
         // Success case - show attractive success modal
-        await Swal.fire({
+      await Swal.fire({
           icon: undefined,
           title: '🎉 Team Income Claimed Successfully!',
           html: `
@@ -309,7 +309,7 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
             </div>
           `,
           background: 'linear-gradient(135deg, #f0f9ff 0%, #ecfdf5 100%)',
-          color: '#222',
+        color: '#222',
           confirmButtonColor: '#10b981',
           confirmButtonText: '🎊 Awesome!',
           showConfirmButton: true,
@@ -358,18 +358,18 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
             showConfirmButton: true,
             showCloseButton: false,
             allowOutsideClick: false,
-            customClass: {
-              popup: 'swal2-border-radius',
-              title: 'swal2-title-bold',
-              confirmButton: 'swal2-confirm-custom'
-            },
-            showClass: {
-              popup: 'animate__animated animate__fadeInDown'
-            },
-            hideClass: {
-              popup: 'animate__animated animate__fadeOutUp'
-            }
-          });
+        customClass: {
+          popup: 'swal2-border-radius',
+          title: 'swal2-title-bold',
+          confirmButton: 'swal2-confirm-custom'
+        },
+        showClass: {
+          popup: 'animate__animated animate__fadeInDown'
+        },
+        hideClass: {
+          popup: 'animate__animated animate__fadeOutUp'
+        }
+      });
           
           // Show info toast
           showToast('info', 'Already claimed today! Come back tomorrow ⏰');
@@ -820,6 +820,10 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
         throw new Error('Amount must be greater than 0');
       }
       
+      if (amount < 10) {
+        throw new Error('Minimum withdrawal amount is $10');
+      }
+      
       // Check if user has wallet info set up
       if (!walletInfo?.walletInfo?.address || !walletInfo?.walletInfo?.qrCode) {
         setShowWalletSetupModal(true);
@@ -1075,6 +1079,136 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
     lastClaimed: string;
   }>(null);
 
+  // TPIN utility functions
+  const getStoredTpin = () => {
+    return localStorage.getItem('userTpin');
+  };
+
+  const setStoredTpin = (pin: string) => {
+    localStorage.setItem('userTpin', pin);
+  };
+
+  const clearStoredTpin = () => {
+    localStorage.removeItem('userTpin');
+  };
+
+  const handleTpinSetup = (e: React.FormEvent) => {
+    e.preventDefault();
+    setTpinError('');
+    
+    if (tpinSetup.pin.length !== 4) {
+      setTpinError('PIN must be 4 digits');
+      return;
+    }
+    
+    if (tpinSetup.pin !== tpinSetup.confirmPin) {
+      setTpinError('PINs do not match');
+      return;
+    }
+    
+    if (!/^\d{4}$/.test(tpinSetup.pin)) {
+      setTpinError('PIN must contain only numbers');
+      return;
+    }
+    
+    // Save TPIN to localStorage
+    setStoredTpin(tpinSetup.pin);
+    setShowTpinSetupModal(false);
+    setTpinSetup({ pin: '', confirmPin: '' });
+    
+    // Proceed with pending action
+    if (pendingAction === 'withdrawal') {
+      setShowWithdrawalModal(true);
+    } else if (pendingAction === 'transfer') {
+      setShowTransferSection(true);
+    }
+    setPendingAction(null);
+  };
+
+  const handleTpinVerify = (e: React.FormEvent) => {
+    e.preventDefault();
+    setTpinError('');
+    
+    const storedPin = getStoredTpin();
+    if (tpinVerify.pin !== storedPin) {
+      setTpinError('Incorrect PIN');
+      return;
+    }
+    
+    setShowTpinVerifyModal(false);
+    setTpinVerify({ pin: '' });
+    
+    // Proceed with pending action
+    if (pendingAction === 'withdrawal') {
+      setShowWithdrawalModal(true);
+    } else if (pendingAction === 'transfer') {
+      setShowTransferSection(true);
+    }
+    setPendingAction(null);
+    setPendingTransferData(null);
+  };
+
+  const handleTransferWithTpin = async (transferData: any) => {
+    setTransferSubmitLoading(true);
+    setTransferSubmitError('');
+    try {
+      const amount = Number(transferData.amount);
+      
+      if (!transferData.amount || isNaN(amount) || amount <= 0) {
+        setTransferSubmitError('Please enter a valid amount');
+        return;
+      }
+      
+      if (amount < 10) {
+        setTransferSubmitError('Minimum transfer amount is $10');
+        return;
+      }
+      
+      const res = await fetch('https://api.goalsbot.com/users/transfer-to-user', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fromWallet: 'normalWallet',
+          referralCode: transferData.referralCode,
+          amount: amount,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        window.location.reload();
+      } else {
+        setTransferSubmitError(data.message || 'Transfer failed');
+      }
+    } catch {
+      setTransferSubmitError('Network error');
+    } finally {
+      setTransferSubmitLoading(false);
+    }
+  };
+
+  const checkTpinAndProceed = (action: 'withdrawal' | 'transfer', transferData?: any) => {
+    const storedPin = getStoredTpin();
+    
+    if (!storedPin) {
+      // First time setup
+      setPendingAction(action);
+      if (transferData) {
+        setPendingTransferData(transferData);
+      }
+      setShowTpinSetupModal(true);
+    } else {
+      // Verify existing PIN
+      setPendingAction(action);
+      if (transferData) {
+        setPendingTransferData(transferData);
+      }
+      setShowTpinVerifyModal(true);
+    }
+  };
+
   const handleStatusCheck = async () => {
     setShowStatusPopup(true);
     setStatusLoading(true);
@@ -1098,6 +1232,15 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
   const [transferAmount, setTransferAmount] = useState('');
   const [transferSubmitLoading, setTransferSubmitLoading] = useState(false);
   const [transferSubmitError, setTransferSubmitError] = useState('');
+  
+  // TPIN states
+  const [showTpinSetupModal, setShowTpinSetupModal] = useState(false);
+  const [showTpinVerifyModal, setShowTpinVerifyModal] = useState(false);
+  const [tpinSetup, setTpinSetup] = useState({ pin: '', confirmPin: '' });
+  const [tpinVerify, setTpinVerify] = useState({ pin: '' });
+  const [tpinError, setTpinError] = useState('');
+  const [pendingAction, setPendingAction] = useState<'withdrawal' | 'transfer' | null>(null);
+  const [pendingTransferData, setPendingTransferData] = useState<any>(null);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
@@ -1167,7 +1310,7 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
                   <p className="text-xs text-gray-600">Withdraw to your wallet</p>
               </div>
               <button
-                onClick={() => setShowWithdrawalModal(true)}
+                onClick={() => checkTpinAndProceed('withdrawal')}
                   className="px-3 py-1.5 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-300 text-xs font-semibold shadow-md hover:shadow-lg"
               >
                 Withdraw
@@ -1186,7 +1329,7 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
                   <p className="text-xs text-gray-600">Move funds between wallets</p>
               </div>
               <button
-                onClick={() => setShowTransferSection(true)}
+                onClick={() => checkTpinAndProceed('transfer')}
                   className="px-3 py-1.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-300 text-xs font-semibold shadow-md hover:shadow-lg"
               >
                 Transfer
@@ -1349,13 +1492,13 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
                     <div className="flex items-center justify-center space-x-2 relative z-10">
                       <div className="w-4 h-4 bg-white/20 rounded-full flex items-center justify-center">
                         <Gift className="w-3 h-3 text-white" />
-                      </div>
+              </div>
                       <span className="text-sm font-semibold">Claim Level Income</span>
                       <div className="w-1.5 h-1.5 bg-white/60 rounded-full animate-pulse"></div>
-                    </div>
-                  )}
-                </button>
-              </div>
+            </div>
+                )}
+              </button>
+            </div>
             </div>
           </div>
 
@@ -1766,7 +1909,7 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
                              </div>
                            </div>
                          </div>
-                       </div>
+                      </div>
                     </div>
                     <div className="text-center mb-2">
                       <span className="text-xs text-gray-500">Scan QR code or copy wallet ID to pay</span>
@@ -1926,31 +2069,19 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
                   />
                   <button
                     onClick={async () => {
-                      setTransferSubmitLoading(true);
-                      setTransferSubmitError('');
-                      try {
-                        const res = await fetch('https://api.goalsbot.com/users/transfer-to-user', {
-                          method: 'POST',
-                          headers: {
-                            'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
-                            'Content-Type': 'application/json',
-                          },
-                          body: JSON.stringify({
-                            fromWallet: 'normalWallet', // always use this value
-                            referralCode: transferUser.referralCode,
-                            amount: Number(transferAmount),
-                          }),
-                        });
-                        const data = await res.json();
-                        if (data.success) {
-                          window.location.reload();
-                        } else {
-                          setTransferSubmitError(data.message || 'Transfer failed');
-                        }
-                      } catch {
-                        setTransferSubmitError('Network error');
-                      } finally {
-                        setTransferSubmitLoading(false);
+                      const transferData = {
+                        amount: transferAmount,
+                        referralCode: transferUser.referralCode
+                      };
+                      
+                      // Check if TPIN is already verified for this session
+                      const storedPin = getStoredTpin();
+                      if (!storedPin) {
+                        // First time setup
+                        checkTpinAndProceed('transfer', transferData);
+                      } else {
+                        // Execute transfer directly since TPIN was already verified
+                        handleTransferWithTpin(transferData);
                       }
                     }}
                     className="bg-green-600 text-white px-4 py-2 rounded"
@@ -2459,6 +2590,127 @@ const HomePage: React.FC<HomePageProps> = ({ userStats, isLoading = false, inves
                 Close
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* TPIN Setup Modal */}
+      {showTpinSetupModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md relative">
+            <button
+              className="absolute top-3 right-3 text-gray-400 hover:text-gray-700"
+              onClick={() => setShowTpinSetupModal(false)}
+            >
+              &times;
+            </button>
+            <h2 className="text-xl font-bold mb-4 text-center">Set Up Transaction PIN</h2>
+            <p className="text-sm text-gray-600 mb-6 text-center">
+              Create a 4-digit PIN to secure your transactions
+            </p>
+            {tpinError && <div className="mb-4 text-red-600 text-sm text-center">{tpinError}</div>}
+            
+            <form onSubmit={handleTpinSetup} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Enter 4-digit PIN</label>
+                <input
+                  type="password"
+                  maxLength={4}
+                  value={tpinSetup.pin}
+                  onChange={(e) => setTpinSetup(prev => ({ ...prev, pin: e.target.value }))}
+                  className="w-full border rounded-lg px-4 py-3 text-center text-lg font-mono tracking-widest"
+                  placeholder="0000"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">Confirm PIN</label>
+                <input
+                  type="password"
+                  maxLength={4}
+                  value={tpinSetup.confirmPin}
+                  onChange={(e) => setTpinSetup(prev => ({ ...prev, confirmPin: e.target.value }))}
+                  className="w-full border rounded-lg px-4 py-3 text-center text-lg font-mono tracking-widest"
+                  placeholder="0000"
+                  required
+                />
+              </div>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="text-sm text-blue-800">
+                  <strong>Important:</strong> This PIN will be required for all withdrawals and transfers. Keep it secure and don't share it with anyone.
+                </p>
+              </div>
+              <div className="flex justify-end space-x-3">
+                <button
+                  type="button"
+                  className="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300"
+                  onClick={() => setShowTpinSetupModal(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
+                >
+                  Set PIN
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* TPIN Verify Modal */}
+      {showTpinVerifyModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md relative">
+            <button
+              className="absolute top-3 right-3 text-gray-400 hover:text-gray-700"
+              onClick={() => setShowTpinVerifyModal(false)}
+            >
+              &times;
+            </button>
+            <h2 className="text-xl font-bold mb-4 text-center">Enter Transaction PIN</h2>
+            <p className="text-sm text-gray-600 mb-6 text-center">
+              Enter your 4-digit PIN to continue
+            </p>
+            {tpinError && <div className="mb-4 text-red-600 text-sm text-center">{tpinError}</div>}
+            
+            <form onSubmit={handleTpinVerify} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Enter PIN</label>
+                <input
+                  type="password"
+                  maxLength={4}
+                  value={tpinVerify.pin}
+                  onChange={(e) => setTpinVerify({ pin: e.target.value })}
+                  className="w-full border rounded-lg px-4 py-3 text-center text-lg font-mono tracking-widest"
+                  placeholder="0000"
+                  required
+                  autoFocus
+                />
+              </div>
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                <p className="text-sm text-yellow-800">
+                  <strong>Security:</strong> This PIN is required to complete your transaction.
+                </p>
+              </div>
+              <div className="flex justify-end space-x-3">
+                <button
+                  type="button"
+                  className="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300"
+                  onClick={() => setShowTpinVerifyModal(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700"
+                >
+                  Verify PIN
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
