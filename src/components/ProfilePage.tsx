@@ -216,9 +216,9 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ profile, onLogout }) => {
   ];
 
   const performanceItems = [
-    { label: "Today's Income", value: `$${formatNumber(profile?.dailyIncome?.todayEarned)}`, color: 'text-emerald-600', bgColor: 'bg-emerald-100', icon: Star },
+    // { label: "Today's Income", value: `$${formatNumber(profile?.dailyIncome?.todayEarned)}`, color: 'text-emerald-600', bgColor: 'bg-emerald-100', icon: Star },
     { label: 'Total Earned', value: `$${formatNumber(profile?.dailyIncome?.totalEarned)}`, color: 'text-blue-600', bgColor: 'bg-blue-100', icon: BarChart3 },
-    { label: 'Potential Daily Income', value: `$${formatNumber(profile?.potentialDailyIncome)}`, color: 'text-purple-600', bgColor: 'bg-purple-100', icon: Crown },
+    // { label: 'Potential Daily Income', value: `$${formatNumber(profile?.potentialDailyIncome)}`, color: 'text-purple-600', bgColor: 'bg-purple-100', icon: Crown },
     { label: 'Can Claim Today', value: profile?.canClaimDailyIncome ? 'Yes' : 'No', color: profile?.canClaimDailyIncome ? 'text-emerald-600' : 'text-gray-500', bgColor: 'bg-indigo-100', icon: Shield },
   ];
 
@@ -356,13 +356,13 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ profile, onLogout }) => {
               <div>Referred By: <b>{profile?.referredBy ? profile.referredBy.name : '-'}</b></div>
               <div>Referral Level: <b>{profile?.referralLevel}</b></div>
             </div>
-            <div className="bg-white rounded-xl p-4 shadow">
+            {/* <div className="bg-white rounded-xl p-4 shadow">
               <div className="font-semibold text-gray-700 mb-2 text-sm sm:text-base">Daily Income</div>
               <div>Today: <b>${formatNumber(profile?.dailyIncome?.todayEarned)}</b></div>
               <div>Total Earned: <b>${formatNumber(profile?.dailyIncome?.totalEarned)}</b></div>
               <div>Last Claimed: <b>{profile?.dailyIncome?.lastClaimed ? new Date(profile.dailyIncome.lastClaimed).toLocaleString() : '-'}</b></div>
               <div>Can Claim: <b className={profile?.canClaimDailyIncome ? 'text-emerald-600' : 'text-gray-500'}>{profile?.canClaimDailyIncome ? 'Yes' : 'No'}</b></div>
-            </div>
+            </div> */}
           </div>
         </div>
 
